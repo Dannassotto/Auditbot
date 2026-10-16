@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d18">
+  <title>AudiBot | Panel de auditoría</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="AudiBot inicio">
+        <span class="brand-mark">A</span>
+        <span class="brand-copy"><strong>AudiBot</strong><small>ASISTENTE DE AUDITORÍA</small></span>
+      </a>
+
+      <div class="sidebar-label">ESPACIO DE TRABAJO</div>
+      <button class="nav-item active" id="newChatBtn" type="button">
+        <span class="nav-icon">＋</span><span>Nueva conversación</span>
+      </button>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-label">HERRAMIENTAS</div>
+      <div class="tool-note">
+        <span class="tool-dot"></span>
+        <div><strong>Órdenes y consultas</strong><small>Envía una tarea para revisar</small></div>
+      </div>
+      <div class="tool-note">
+        <span class="tool-dot blue"></span>
+        <div><strong>Alertas del sistema</strong><small>Mensajes y confirmaciones aquí</small></div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="connection-row"><span class="connection-dot" id="connectionDot"></span><span id="connectionText">Verificando conexión…</span></div>
+        <div class="version">AudiBot · Panel de control</div>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="page-heading">
+          <div class="eyebrow">ASISTENTE INTELIGENTE</div>
+          <h1>¿En qué te puedo ayudar?</h1>
+          <p>Escribe una orden o envíala por voz para comenzar.</p>
+        </div>
+        <div class="top-status"><span class="status-pulse"></span><span id="headerStatus">Listo para recibir órdenes</span></div>
+      </header>
+
+      <section class="chat-area" aria-label="Conversación con AudiBot">
+        <div class="welcome-block" id="welcomeBlock">
+          <div class="welcome-icon"><span>A</span></div>
+          <h2>Hola, soy AudiBot.</h2>
+          <p>Puedo ayudarte a ejecutar consultas y revisar información. Escribe una instrucción clara para empezar.</p>
+          <div class="suggestions">
+            <button class="suggestion" type="button" data-prompt="Revisa las órdenes de hoy"><span>↗</span><span><strong>Revisar las órdenes de hoy</strong><small>Consulta la actividad reciente</small></span></button>
+            <button class="suggestion" type="button" data-prompt="Muéstrame las alertas pendientes"><span>◈</span><span><strong>Consultar alertas pendientes</strong><small>Identifica avisos por revisar</small></span></button>
+            <button class="suggestion" type="button" data-prompt="Resume el estado actual del sistema"><span>⌁</span><span><strong>Resumir el estado del sistema</strong><small>Solicita un resumen general</small></span></button>
+          </div>
+        </div>
+        <div class="message-list" id="messageList" aria-live="polite"></div>
+        <div class="typing-row hidden" id="typingRow"><span class="typing-dots"><i></i><i></i><i></i></span><span>AudiBot está procesando tu solicitud…</span></div>
+      </section>
+
+      <div class="composer-wrap">
+        <div class="voice-banner" id="voiceBanner" role="status">
+          <span class="voice-banner-icon">◖</span>
+          <span id="voiceBannerText">También puedes pulsar “Voz” y dictar tu orden.</span>
+          <button type="button" id="dismissVoice" aria-label="Cerrar aviso">×</button>
+        </div>
+        <form class="composer" id="orderForm">
+          <textarea id="orderInput" rows="1" placeholder="Escribe tu orden para AudiBot…" aria-label="Escribe tu orden"></textarea>
+          <div class="composer-actions">
+            <div class="composer-hint"><span class="enter-icon">↵</span> Enter para enviar · Shift + Enter para nueva línea</div>
+            <div class="action-buttons">
+              <button class="voice-button" type="button" id="voiceBtn" title="Dictar una orden" aria-label="Dictar una orden"><span class="mic-icon">♩</span><span id="voiceBtnText">Voz</span></button>
+              <button class="send-button" type="submit" id="sendBtn"><span>Enviar orden</span><span class="send-arrow">↑</span></button>
+            </div>
+          </div>
+        </form>
+        <p class="privacy-note">Verifica los resultados importantes antes de tomar decisiones.</p>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

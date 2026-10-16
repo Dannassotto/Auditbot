@@ -1,0 +1,7 @@
+.env
+data/
+logs/
+model/
+__pycache__/
+*.pyc
+desktop.ini

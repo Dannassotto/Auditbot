@@ -703,3 +703,87 @@ button {
         animation: none
     }
 }
+
+/* ===== Historial de conversaciones (pegar al final de styles.css) ===== */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 10px
+}
+
+.history-item:hover,
+.history-item.active {
+    background: var(--card);
+    border-color: var(--line)
+}
+
+.history-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 0;
+    background: none;
+    text-align: left
+}
+
+.history-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px
+}
+
+.history-open small {
+    color: var(--mut);
+    font-size: 11px
+}
+
+.history-del {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-right: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--mut);
+    font-size: 16px;
+    opacity: 0
+}
+
+.history-item:hover .history-del,
+.history-item:focus-within .history-del {
+    opacity: 1
+}
+
+.history-del:hover {
+    color: var(--red-h);
+    background: rgba(179, 58, 70, .15)
+}
+
+.history-empty {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--mut)
+}
+
+@media (hover:none) {
+    .history-del {
+        opacity: 1
+    }
+}

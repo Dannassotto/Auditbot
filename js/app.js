@@ -20,6 +20,150 @@
   let activeController = null;   // hay una orden en curso desde esta página
   let stopping = false;
 
+  // ---- Historial de conversaciones (se guarda en el navegador, por chat) ----
+  const STORAGE_KEY = 'audibot_chats_v1';
+  const MAX_CHATS = 30;
+  const historyList = $('historyList');
+  let chats = loadChats();
+  let currentChatId = null;       // null = conversación nueva, todavía sin guardar
+
+  function loadChats() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (_) { return []; }
+  }
+
+  function saveChats() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
+    catch (_) { /* almacenamiento lleno o bloqueado: el chat sigue funcionando, solo no se guarda */ }
+  }
+
+  function currentChat() {
+    return chats.find((c) => c.id === currentChatId) || null;
+  }
+
+  function ensureChat() {
+    let chat = currentChat();
+    if (!chat) {
+      chat = { id: Date.now().toString(36), title: 'Nueva conversación', ts: Date.now(), messages: [] };
+      chats.unshift(chat);
+      if (chats.length > MAX_CHATS) chats.length = MAX_CHATS;
+      currentChatId = chat.id;
+    }
+    return chat;
+  }
+
+  function isBusy() {
+    return Boolean(activeController) || lastServerState === 'trabajando' || lastServerState === 'deteniendo';
+  }
+
+  // Guarda un mensaje en el chat actual y devuelve su posición dentro del chat.
+  function recordMessage(role, text, options) {
+    const chat = ensureChat();
+    const entry = { role, text, time: timeNow() };
+    if (options.error) entry.error = true;
+    if (options.resultado) entry.resultado = options.resultado;
+    chat.messages.push(entry);
+    if (role === 'user' && chat.title === 'Nueva conversación') chat.title = text.slice(0, 42);
+    chat.ts = Date.now();
+    chats = [chat, ...chats.filter((c) => c !== chat)];   // el chat activo sube al principio
+    saveChats();
+    renderHistory();
+    return chat.messages.length - 1;
+  }
+
+  // Al editar y reenviar un mensaje, lo guardado se corta en ese punto.
+  function recordEdit(idx, nuevoTexto) {
+    const chat = currentChat();
+    if (!chat || !chat.messages[idx]) return;
+    chat.messages[idx].text = nuevoTexto;
+    chat.messages[idx].edited = true;
+    chat.messages.length = idx + 1;
+    if (idx === 0) chat.title = nuevoTexto.slice(0, 42);
+    chat.ts = Date.now();
+    saveChats();
+    renderHistory();
+  }
+
+  function formatChatDate(ts) {
+    return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short' }).format(new Date(ts));
+  }
+
+  function renderHistory() {
+    historyList.replaceChildren();
+    if (!chats.length) {
+      historyList.appendChild(el('div', 'history-empty', 'Aún no hay conversaciones'));
+      return;
+    }
+    chats.forEach((chat) => {
+      const n = chat.messages.length;
+      const item = el('div', `history-item${chat.id === currentChatId ? ' active' : ''}`);
+
+      const open = el('button', 'history-open');
+      open.type = 'button';
+      open.title = chat.title;
+      open.append(
+        el('span', 'history-title', chat.title),
+        el('small', '', `${formatChatDate(chat.ts)} · ${n} ${n === 1 ? 'mensaje' : 'mensajes'}`)
+      );
+      open.addEventListener('click', () => openChat(chat.id));
+
+      const del = el('button', 'history-del', '×');
+      del.type = 'button';
+      del.title = 'Eliminar conversación';
+      del.setAttribute('aria-label', 'Eliminar conversación');
+      del.addEventListener('click', (event) => {
+        event.stopPropagation();
+        deleteChat(chat.id);
+      });
+
+      item.append(open, del);
+      historyList.appendChild(item);
+    });
+  }
+
+  function openChat(id) {
+    if (id === currentChatId) return;
+    if (isBusy()) { toast('Espera a que termine o detén la auditoría actual.', 'error'); return; }
+    const chat = chats.find((c) => c.id === id);
+    if (!chat) return;
+
+    currentChatId = id;
+    messageList.replaceChildren();
+    chat.messages.forEach((m, i) => {
+      addMessage(m.role, m.text, {
+        restoring: true, idx: i, time: m.time, error: m.error, edited: m.edited,
+        render: m.resultado ? (bubble) => renderResultado(bubble, m.resultado) : undefined
+      });
+    });
+    input.value = '';
+    resizeInput();
+    headerStatus.textContent = 'Listo para recibir órdenes';
+    renderHistory();
+  }
+
+  function startNewChat() {
+    if (isBusy()) { toast('Espera a que termine o detén la auditoría actual.', 'error'); return; }
+    currentChatId = null;
+    messageList.replaceChildren();
+    welcomeBlock.classList.remove('hidden');
+    input.value = '';
+    resizeInput();
+    input.focus();
+    headerStatus.textContent = 'Nueva conversación';
+    renderHistory();
+  }
+
+  function deleteChat(id) {
+    if (id === currentChatId && isBusy()) { toast('Espera a que termine o detén la auditoría actual.', 'error'); return; }
+    if (!window.confirm('¿Eliminar esta conversación?')) return;
+    chats = chats.filter((c) => c.id !== id);
+    saveChats();
+    if (id === currentChatId) startNewChat();
+    else renderHistory();
+  }
+
   // ---- Estilos de las tarjetas de resultado (inyectados desde aquí) ----
   (function injectStyles() {
     const style = document.createElement('style');
@@ -134,8 +278,9 @@
     const name = document.createElement('strong');
     name.textContent = role === 'user' ? 'Tú' : role === 'system' ? 'Aviso del sistema' : 'AudiBot';
     const time = document.createElement('time');
-    time.textContent = timeNow();
+    time.textContent = options.time || timeNow();
     meta.append(name, time);
+    if (options.edited) meta.appendChild(el('em', 'message-edited', ' · editado'));
 
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
@@ -201,14 +346,15 @@
             return;
           }
 
-          // 1) La MISMA burbuja pasa a mostrar el texto nuevo .
+          // 1) La MISMA burbuja pasa a mostrar el texto nuevo (no se crea otra).
           bubble.textContent = nuevoTexto;
+          recordEdit(Number(message.dataset.idx), nuevoTexto);
           if (!meta.querySelector('.message-edited')) {
             meta.appendChild(el('em', 'message-edited', ' · editado'));
           }
           cerrarEditor();
 
-          // 2) Se quita lo que venía después,
+          // 2) Se quita lo que venía después (la respuesta vieja y todo lo posterior),
           //    como al editar en cualquier chat: la conversación continúa desde este mensaje.
           while (message.nextElementSibling) message.nextElementSibling.remove();
 
@@ -228,6 +374,7 @@
     }
 
     message.append(avatar, body);
+    message.dataset.idx = String(options.restoring ? options.idx : recordMessage(role, text, options));
     messageList.appendChild(message);
     scrollToLatest();
     return message;
@@ -321,7 +468,7 @@
 
       const fallback = data.mensaje || data.respuesta || 'Orden recibida. AudiBot comenzará a procesarla.';
       if (data.resultado && Array.isArray(data.resultado.ordenes)) {
-        addMessage('assistant', fallback, { render: (bubble) => renderResultado(bubble, data.resultado) });
+        addMessage('assistant', fallback, { render: (bubble) => renderResultado(bubble, data.resultado), resultado: data.resultado });
       } else {
         addMessage('assistant', fallback);
       }
@@ -407,14 +554,7 @@
     });
   });
 
-  $('newChatBtn').addEventListener('click', () => {
-    messageList.replaceChildren();
-    welcomeBlock.classList.remove('hidden');
-    input.value = '';
-    resizeInput();
-    input.focus();
-    headerStatus.textContent = 'Nueva conversación';
-  });
+  $('newChatBtn').addEventListener('click', startNewChat);
 
   $('dismissVoice').addEventListener('click', () => $('voiceBanner').classList.add('hidden'));
 
@@ -498,6 +638,7 @@
     }
   }
 
+  renderHistory();
   setupSpeechRecognition();
   pollServer();
   window.setInterval(pollServer, 2500);

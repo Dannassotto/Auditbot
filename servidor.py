@@ -30,7 +30,8 @@ from services import llm  # noqa: E402
 PUERTO = int(os.environ.get("PORT", "5000"))
 LIMITE_POR_DEFECTO = 3     # cuántas órdenes investiga si no dices una cantidad
 LIMITE_MAXIMO = 5          # tope por consulta, para cuidar los créditos
-ESPERA_ANTES_DE_ENVIAR = 2.0   # segundos para arrepentirse: si pulsas Detener aquí, no se envía NADA a Grok 
+MAX_GUARDADAS = 10         # cuántas decisiones ya guardadas se muestran de una vez (no cuestan créditos)
+ESPERA_ANTES_DE_ENVIAR = 2.0   # segundos para arrepentirse: si pulsas Detener aquí, no se envía NADA a Grok (0 = sin espera)
 RUTA_BD = "data/auditbot.db"
 RUTA_LOG = "logs/decisiones.jsonl"
 
@@ -104,7 +105,7 @@ def interpretar(texto, hoy):
     mes_pat = "|".join(MESES)
     sufijo = r"(?:\s+(?:de|del)\s+(\d{4}))?"
 
-    # --- ids concretos
+    # --- ids concretos: "la orden 55", "órdenes 3, 5 y 8" (no confundir con "orden 18 de agosto")
     ids = set()
     patron_ids = (r"orden(?:es)?\s*(?:numero|num\.?|no\.?|#)?\s*#?\s*"
                   r"(\d+(?:\s*(?:,|y|e)\s*\d+)*)(?!\d|\s*de\s+(?:" + mes_pat + r"))")
@@ -123,10 +124,14 @@ def interpretar(texto, hoy):
     # --- periodo
     desde = hasta = etiqueta = None
 
-    m = re.search(rf"\bdel?\s+(\d{{1,2}})\s+al?\s+(\d{{1,2}})\s+de\s+({mes_pat})\b{sufijo}", t)
+    m = re.search(rf"\b(?:del?\s+)?(\d{{1,2}})\s+al?\s+(\d{{1,2}})\s+de\s+({mes_pat})\b{sufijo}", t)
+    m2 = None if m else re.search(rf"\b({mes_pat})\s+del?\s+(\d{{1,2}})\s+al?\s+(\d{{1,2}})\b(?:\s+(?:de|del)\s+(\d{{4}}))?", t)
     if m:                                               # "del 10 al 20 de agosto"
         desde, hasta = fecha(m[1], m[3], m[4]), fecha(m[2], m[3], m[4])
         etiqueta = f"el periodo del {int(m[1])} al {int(m[2])} de {m[3]} de {m[4] or anio}"
+    elif m2:                                            # "agosto de 1 al 10"
+        desde, hasta = fecha(m2[2], m2[1], m2[4]), fecha(m2[3], m2[1], m2[4])
+        etiqueta = f"el periodo del {int(m2[2])} al {int(m2[3])} de {m2[1]} de {m2[4] or anio}"
     elif (m := re.search(rf"\b(\d{{1,2}})\s+de\s+({mes_pat})\b{sufijo}", t)):
         desde = hasta = fecha(m[1], m[2], m[3])         # "18 de agosto"
         etiqueta = f"el {int(m[1])} de {m[2]} de {m[3] or anio}"
@@ -150,14 +155,55 @@ def interpretar(texto, hoy):
         etiqueta = "los últimos 30 días"
 
     pasa = (lambda f: desde <= f <= hasta) if desde else (lambda f: True)
-    return {"ids": ids, "cantidad": cantidad, "pasa": pasa, "etiqueta": etiqueta}
+    return {"ids": ids, "cantidad": cantidad, "pasa": pasa, "etiqueta": etiqueta, "desde": desde, "hasta": hasta}
+
+def _tarjeta(h, decision):
+    """Datos de una orden + decisión del agente, tal como los dibuja la interfaz."""
+    dd = _decision_a_dict(decision)
+    return {
+        "orden_id": h["orden_id"],
+        "fecha": h["fecha"],
+        "cliente": h["cliente"],
+        "banderas": [ETIQUETAS.get(b, b) for b in h["banderas"]],
+        "margen_pct": h["margen_pct"],
+        "accion": dd.get("accion", "revisar"),
+        "causa": dd.get("causa", ""),
+        "evidencia": dd.get("evidencia", ""),
+        "perdida_mxn": dd.get("perdida_estimada_mxn") or 0,
+    }
+
+
+def _armar(base, ordenes, gasto, cancelado=False, guardadas=False):
+    """Resumen + tarjetas + mensaje de texto. `guardadas`: decisiones leídas de la bitácora, sin llamar a Grok."""
+    alertas = [o for o in ordenes if o["accion"] == "alertar"]
+    ignoradas = [o for o in ordenes if o["accion"] == "ignorar"]
+    perdida_total = round(sum(o["perdida_mxn"] for o in alertas), 2)
+    cuentas = (f"{_plural(len(alertas), 'requiere alerta', 'requieren alerta')} "
+               f"y {_plural(len(ignoradas), 'se puede ignorar', 'se pueden ignorar')}.")
+    if guardadas:
+        resumen = (f"{base} Ya estaban investigadas: muestro "
+                   f"{_plural(len(ordenes), 'decisión guardada', 'decisiones guardadas')} "
+                   f"(sin gastar créditos): {cuentas}")
+    else:
+        resumen = f"{base} Investigué {_plural(len(ordenes), 'orden', 'órdenes')}: {cuentas}"
+    if cancelado:
+        resumen += " Consulta detenida: las órdenes restantes no se investigaron."
+
+    resultado = {"resumen": resumen, "ordenes": ordenes,
+                 "perdida_total_mxn": perdida_total, "gasto_usd": gasto}
+    lineas = [resumen, ""]
+    for o in ordenes:
+        lineas.append(f"Orden {o['orden_id']} ({o['cliente']}) - {o['accion'].upper()}: {o['causa']}")
+    lineas.append(f"\nPérdida estimada en alertas: ${perdida_total:,.2f} MXN")
+    return {"mensaje": "\n".join(lineas), "resultado": resultado, "cancelado": cancelado}
+
 
 def ejecutar_auditoria(texto):
     """Misma lógica del script de consola. Números en el texto = ids de órdenes.
 
     Devuelve {"mensaje": texto_plano, "resultado": datos_estructurados | None, "cancelado": bool}.
     """
-    
+    gasto_inicial = llm.gasto_total   # para reportar solo el gasto de ESTA consulta
 
     con = sqlite3.connect(RUTA_BD)
     try:
@@ -168,6 +214,14 @@ def ejecutar_auditoria(texto):
         con_bandera = [h for h in (revisar_orden(con, i) for i in ids) if h["banderas"]]
         base = (f"Revisé {_plural(len(ids), 'orden', 'órdenes')} con las reglas y "
                 f"{len(con_bandera)} tienen banderas.")
+
+        fmin, fmax = con.execute("SELECT MIN(fecha), MAX(fecha) FROM ordenes").fetchone()
+        if not pedidas and pedido["desde"]:
+            if pedido["hasta"] < fmin or pedido["desde"] > fmax:
+                return {"mensaje": f"No hay datos para {pedido['etiqueta']}: la base va del {fmin} al {fmax}.",
+                        "resultado": None}
+            if pedido["desde"] < fmin or pedido["hasta"] > fmax:
+                base += f" (La base solo tiene datos del {fmin} al {fmax}.)"
 
         if pedidas:
             # Pidió órdenes concretas ("la orden 55"): se investigan esas.
@@ -182,17 +236,24 @@ def ejecutar_auditoria(texto):
             if pedido["etiqueta"]:
                 base += f" En {pedido['etiqueta']}: {len(en_periodo)}."
 
-            hechas = set()
+            guardadas = {}
             if os.path.exists(RUTA_LOG):
                 with open(RUTA_LOG, encoding="utf-8") as f:
                     for linea in f:
-                        hechas.add(json.loads(linea)["orden"])
-            pendientes = [h for h in en_periodo if h["orden_id"] not in hechas]
+                        r = json.loads(linea)
+                        guardadas[r["orden"]] = r["decision"]      # queda la decisión más reciente de cada orden
+            pendientes = [h for h in en_periodo if h["orden_id"] not in guardadas]
+            ya_hechas = len(en_periodo) - len(pendientes)
             if not pendientes:
-                if en_periodo:
-                    return {"mensaje": (f"{base}\n" + (f"La orden con bandera{donde} ya fue investigada" if len(en_periodo) == 1 else f"Las {len(en_periodo)} órdenes con banderas{donde} ya fueron investigadas") + " (ver bitácora)."),
-                    "resultado": None}
-                return {"mensaje": f"{base}\nNo hay órdenes con banderas{donde}.", "resultado": None}
+                if not en_periodo:
+                    return {"mensaje": f"{base}\nNo hay órdenes con banderas{donde}.", "resultado": None}
+                # Todas se investigaron antes: se muestran sus decisiones guardadas (gratis y al instante).
+                mostrar = en_periodo[:MAX_GUARDADAS]
+                if len(en_periodo) > MAX_GUARDADAS:
+                    base += f" (Muestro {MAX_GUARDADAS} de {len(en_periodo)}.)"
+                return _armar(base, [_tarjeta(h, guardadas[h["orden_id"]]) for h in mostrar], 0, guardadas=True)
+            if ya_hechas:
+                base += f" ({_plural(ya_hechas, 'ya estaba investigada', 'ya estaban investigadas')} antes.)"
 
             limite = min(pedido["cantidad"] or LIMITE_POR_DEFECTO, LIMITE_MAXIMO)
             if pedido["cantidad"] and pedido["cantidad"] > LIMITE_MAXIMO:
@@ -237,18 +298,7 @@ def ejecutar_auditoria(texto):
                                     "decision": d}, ensure_ascii=False, default=str) + "\n")
             progreso["hechas"] += 1
 
-            dd = _decision_a_dict(d)
-            ordenes.append({
-                "orden_id": h["orden_id"],
-                "fecha": h["fecha"],
-                "cliente": h["cliente"],
-                "banderas": [ETIQUETAS.get(b, b) for b in h["banderas"]],
-                "margen_pct": h["margen_pct"],
-                "accion": dd.get("accion", "revisar"),
-                "causa": dd.get("causa", ""),
-                "evidencia": dd.get("evidencia", ""),
-                "perdida_mxn": dd.get("perdida_estimada_mxn") or 0,
-            })
+            ordenes.append(_tarjeta(h, d))
 
             if cancelar_evento.is_set():
                 cancelado = True
@@ -258,27 +308,7 @@ def ejecutar_auditoria(texto):
             return {"mensaje": "Consulta detenida antes de terminar ninguna orden.",
                     "resultado": None, "cancelado": True}
 
-        alertas = [o for o in ordenes if o["accion"] == "alertar"]
-        ignoradas = [o for o in ordenes if o["accion"] == "ignorar"]
-        perdida_total = round(sum(o["perdida_mxn"] for o in alertas), 2)
-        resumen = (f"{base} Investigué {_plural(len(ordenes), 'orden', 'órdenes')}: "
-                   f"{_plural(len(alertas), 'requiere alerta', 'requieren alerta')} "
-                   f"y {_plural(len(ignoradas), 'se puede ignorar', 'se pueden ignorar')}.")
-        if cancelado:
-            resumen += " Consulta detenida: las órdenes restantes no se investigaron."
-
-        resultado = {
-            "resumen": resumen,
-            "ordenes": ordenes,
-            "perdida_total_mxn": perdida_total,
-            "gasto_usd": round(llm.gasto_total, 4),
-        }
-
-        lineas = [resumen, ""]
-        for o in ordenes:
-            lineas.append(f"Orden {o['orden_id']} ({o['cliente']}) - {o['accion'].upper()}: {o['causa']}")
-        lineas.append(f"\nPérdida estimada en alertas: ${perdida_total:,.2f} MXN")
-        return {"mensaje": "\n".join(lineas), "resultado": resultado, "cancelado": cancelado}
+        return _armar(base, ordenes, round(llm.gasto_total - gasto_inicial, 4), cancelado)
     finally:
         con.close()
 

@@ -25,3 +25,5 @@ model-grande/
 .env
 electron/node_modules/
 electron/dist/
+
+model-grande/

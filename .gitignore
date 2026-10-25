@@ -1,0 +1,27 @@
+.env
+data/
+logs/
+model/
+__pycache__/
+*.pyc
+desktop.ini
+
+# Dependencias de Node.js
+electron/node_modules/
+
+# Entorno virtual de Python
+venv/
+.venv/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos compilados de Electron
+electron/dist/
+model-grande/
+
+model-grande/
+.env
+electron/node_modules/
+electron/dist/

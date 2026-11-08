@@ -27,3 +27,8 @@ electron/node_modules/
 electron/dist/
 
 model-grande/
+
+data/uci.db
+data/uci/
+database/
+respaldo_parches/

@@ -127,15 +127,26 @@ def test_resultado_incluye_los_campos_que_consume_el_agente(con, crear_orden):
         assert campo in r
 
 
-# ---------- fragilidades actuales (datos incompletos) ----------
-def test_producto_sin_costo_registrado_hoy_lanza_TypeError(con, crear_orden):
-    """Hoy una orden sin costo vigente rompe la revisión completa (costo=None)."""
-    oid = crear_orden(costo=None)
-    with pytest.raises(TypeError):
-        revisar_orden(con, oid)
+# ---------- datos incompletos: se declaran, no rompen la revisión ----------
+def test_producto_sin_costo_registrado_se_declara_incompleto(con, crear_orden):
+    r = revisar_orden(con, crear_orden(costo=None))
+    assert "datos_incompletos" in r["banderas"]
+    assert r["margen_pct"] is None and "costo vigente" in r["datos_faltantes"]
 
 
-def test_precio_cero_hoy_lanza_ZeroDivisionError(con, crear_orden):
-    oid = crear_orden(precio=0, facturas=[])
-    with pytest.raises(ZeroDivisionError):
-        revisar_orden(con, oid)
+def test_precio_cero_se_declara_incompleto(con, crear_orden):
+    r = revisar_orden(con, crear_orden(precio=0, facturas=[]))
+    assert "datos_incompletos" in r["banderas"]
+    assert r["margen_pct"] is None
+    assert "sin_factura" in r["banderas"]          # las demás reglas siguen corriendo
+
+
+def test_producto_sin_inventario_se_declara_incompleto(con, crear_orden):
+    r = revisar_orden(con, crear_orden(disponible=None))
+    assert "datos_incompletos" in r["banderas"]
+    assert r["stock_disponible"] is None and "stock_insuficiente" not in r["banderas"]
+
+
+def test_orden_completa_no_declara_datos_incompletos(con, crear_orden):
+    r = revisar_orden(con, crear_orden())
+    assert "datos_incompletos" not in r["banderas"] and r["datos_faltantes"] == []

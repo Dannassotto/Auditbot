@@ -264,6 +264,7 @@
     welcomeBlock.classList.add('hidden');
     const message = document.createElement('article');
     message.className = `message ${role}${options.error ? ' error' : ''}`;
+    if (options.codigo) message.dataset.codigo = options.codigo;
 
     const avatar = document.createElement('div');
     avatar.className = 'avatar';
@@ -456,8 +457,9 @@
         return;
       }
       if (!response.ok) {
-        const detail = data.error || data.mensaje || `Error ${response.status}`;
-        throw new Error(detail);
+        const err = new Error(data.error || data.mensaje || `Error ${response.status}`);
+        err.codigo = data.codigo;
+        throw err;
       }
 
       if (data.cancelado) {      // el servidor confirma que se detuvo
@@ -483,9 +485,11 @@
         } catch (_) { /* El endpoint de confirmación puede ser opcional. */ }
       }
     } catch (error) {
-      addMessage('system', `No pude enviar la orden. ${error.message || 'Verifica que servidor.py esté ejecutándose.'}`, { error: true });
+      const sinRed = error instanceof TypeError;   // fetch ni llegó al servidor
+      const codigo = error.codigo || (sinRed ? 'SIN_CONEXION' : 'DESCONOCIDO');
+      addMessage('system', `No pude enviar la orden. ${error.message || 'Verifica que servidor.py esté ejecutándose.'}`, { error: true, codigo });
       toast('No se pudo enviar la orden.', 'error');
-      setConnected(false);
+      if (sinRed) setConnected(false);
     } finally {
       activeController = null;   // la orden terminó (o falló o se detuvo)
       stopping = false;
@@ -680,6 +684,74 @@
       setConnected(false);
     }
   }
+
+  // ---- Panel de la corrida larga (solo observa: la corrida se lanza con worker.py) ----
+  (function panelCorrida() {
+    const dir = new URLSearchParams(location.search).get('dir') || 'corrida';
+    const css = document.createElement('style');
+    css.textContent = `
+      .corrida-btn { position: fixed; right: 16px; top: 88px;; z-index: 50; padding: 8px 14px; border-radius: 999px;
+        border: 1px solid rgba(148,163,184,.4); background: rgba(15,23,42,.9); color: inherit; cursor: pointer; }
+      .corrida-panel { position: fixed; right: 16px; top: 134px; z-index: 50; width: min(420px, 92vw); max-height: 70vh;
+        overflow: auto; padding: 14px; border-radius: 14px; border: 1px solid rgba(148,163,184,.3);
+        background: rgba(15,23,42,.96); color: #e2e8f0; font-size: .9em; }
+      .corrida-barra { height: 10px; border-radius: 999px; background: rgba(148,163,184,.2); overflow: hidden; margin: 8px 0; }
+      .corrida-barra > div { height: 100%; background: #22c55e; width: 0; transition: width .4s; }
+      .corrida-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-bottom: 10px; }
+      .corrida-item { border-top: 1px solid rgba(148,163,184,.2); padding: 6px 0; line-height: 1.4; }
+      .corrida-item small { opacity: .7; }`;
+    document.head.appendChild(css);
+
+    const btn = el('button', 'corrida-btn', 'Ver corrida');
+    btn.type = 'button';
+    const panel = el('div', 'corrida-panel hidden');
+    document.body.append(btn, panel);
+    let timer = null;
+
+    const hms = (ms) => {
+      const m = Math.max(0, Math.floor(ms / 60000));
+      return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
+    };
+
+    async function pintar() {
+      let d;
+      try {
+        const r = await fetch('/api/corrida?dir=' + encodeURIComponent(dir), { cache: 'no-store' });
+        d = await r.json();
+      } catch (_) { panel.replaceChildren(el('p', '', 'No se pudo leer la corrida.')); return; }
+
+      const total = d.total || 0;
+      const pct = total ? Math.min(100, (d.hechas / total) * 100) : 0;
+      const fin = d.estado === 'en curso' ? Date.now() : (d.ultima ? Date.parse(d.ultima) : Date.now());
+      const transcurrido = d.inicio ? hms(fin - Date.parse(d.inicio)) : '—';
+      const barra = el('div', 'corrida-barra'); barra.appendChild(el('div'));
+      barra.firstChild.style.width = pct + '%';
+      const celdas = [
+        ['Estado', d.estado + (d.motivo ? ' — ' + d.motivo : '')], ['Tiempo', transcurrido],
+        ['Con decisión', d.ok], ['Alertas', d.alertas],
+        ['Sin decisión', d.sin_decision], ['Con error', d.error],
+        ['Llamadas', d.llamadas], ['Tokens', Number(d.tokens).toLocaleString('es-MX')],
+        ['Costo', 'US$' + Number(d.costo_usd).toFixed(4)], ['Intentos fallidos', d.intentos_fallidos],
+      ];
+      const grid = el('div', 'corrida-grid');
+      celdas.forEach(([k, v]) => grid.append(el('span', '', k + ': '), el('strong', '', String(v))));
+      const lista = el('div');
+      (d.ultimas || []).forEach((o) => {
+        const item = el('div', 'corrida-item');
+        item.append(el('strong', '', `${o.accion} · ${o.regla}`), el('br'), el('small', '', o.causa || ''));
+        lista.appendChild(item);
+      });
+      panel.replaceChildren(
+        el('strong', '', `Corrida: ${d.hechas} de ${total || '?'} órdenes (${pct.toFixed(1)}%)`),
+        barra, grid, el('strong', '', 'Últimas decisiones'), lista);
+    }
+
+    btn.addEventListener('click', () => {
+      panel.classList.toggle('hidden');
+      clearInterval(timer);
+      if (!panel.classList.contains('hidden')) { pintar(); timer = setInterval(pintar, 5000); }
+    });
+  })();
 
   renderHistory();
   setupSpeechRecognition();

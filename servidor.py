@@ -3,6 +3,7 @@
 Sirve el HTML/CSS/JS y expone los endpoints que usa app.js:
   GET  /api/estado   -> {"estado": "reposo" | "trabajando" | "deteniendo", "alerta": {...} | null,
                           "mensaje", "hechas", "total", "llamadas", "gasto_acumulado", ...}
+  GET  /api/corrida?dir=corrida -> avance de la corrida larga, leído de logs/<dir>/ (solo lectura)
   POST /api/orden    -> {"texto": "..."}  (ejecuta la auditoría y responde con el resultado;
                           con "async": true responde al instante y trabaja en segundo plano)
   POST /api/detener  -> pide parar la auditoría en curso (surte efecto entre una orden y otra)
@@ -14,19 +15,19 @@ Uso (desde la raíz del proyecto):
     python servidor.py
 """
 import asyncio
+import glob
 import json
 import os
 import re
+import time
 import traceback
 import sqlite3
 import threading
 import unicodedata
 import webbrowser
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
-
-from openai import audio
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 os.chdir(RAIZ)  # las rutas data/auditbot.db y logs/ son relativas a la raíz
@@ -34,6 +35,8 @@ os.chdir(RAIZ)  # las rutas data/auditbot.db y logs/ son relativas a la raíz
 from engine.margins import revisar_orden  # noqa: E402
 from agent.loop import auditar_orden, Cancelado  # noqa: E402
 from services import llm  # noqa: E402
+from services.llm import ErrorLLM  # noqa: E402
+from services import chat_uci  # noqa: E402
 
 PUERTO = int(os.environ.get("PORT", "5000"))
 LIMITE_POR_DEFECTO = 3     # cuántas órdenes investiga si no dices una cantidad
@@ -41,7 +44,14 @@ LIMITE_MAXIMO = 10          # tope por consulta, para cuidar los créditos
 MAX_GUARDADAS = 10         # cuántas decisiones ya guardadas se muestran de una vez (no cuestan créditos)
 UMBRAL_GRAVE_MXN = 500    # a partir de esta pérdida el robot marca "alerta grave"
 ESPERA_ANTES_DE_ENVIAR = 2.0   # segundos para arrepentirse: si pulsas Detener aquí, no se envía NADA a Grok (0 = sin espera)
+SEGUNDOS_CORRIDA_ACTIVA = 900  # si la bitácora no cambia en este tiempo, la corrida se da por detenida
+# worker.py escribe "fin" también cuando se detiene antes de acabar; el evento previo dice por qué.
+MOTIVOS_PARADA = {"stop_manual": "se detuvo manualmente", "tope_gasto": "se alcanzó el tope de gasto",
+                  "limite_horas": "se alcanzó el límite de horas", "parada_por_error": "se detuvo por un error",
+                  "interrumpido": "fue interrumpida"}
 RUTA_BD = "data/auditbot.db"
+RUTA_UCI = "data/uci.db"            # datos reales (modo "UCI" del chat)
+DIR_CHAT_UCI = "logs/chat_uci"
 RUTA_LOG = "logs/decisiones.jsonl"
 RUTA_LLAMADAS = "logs/llamadas.jsonl"
 
@@ -55,6 +65,7 @@ ETIQUETAS = {
     "sin_factura": "Sin factura",
     "factura_duplicada": "Factura duplicada",
     "subfacturada": "Subfacturada",
+    "datos_incompletos": "Datos incompletos",
 }
 
 # Carpeta donde está index.html (se busca en estos sitios, en orden).
@@ -77,7 +88,7 @@ TIPOS = {
     ".glb": "model/gltf-binary",
 }
 
-INICIO = int(__import__('time').time())   # distingue las órdenes de esta ejecución de las de una anterior
+INICIO = int(time.time())   # distingue las órdenes de esta ejecución de las de una anterior
 historial_voz = []     # últimas órdenes dadas por voz con su resultado: el chat las muestra como burbujas
 MAX_HISTORIAL_VOZ = 20
 candado = threading.Lock()
@@ -133,6 +144,122 @@ def _gasto_acumulado():
     return _cache_gasto["llamadas"], _cache_gasto["total"]
 
 
+def _reciente(evento, segundos):
+    try:
+        return (datetime.now() - datetime.fromisoformat(evento["hora"])).total_seconds() < segundos
+    except (KeyError, ValueError):
+        return False
+
+
+def estado_corrida(nombre="corrida"):
+    """Avance de la corrida larga, leído de logs/<nombre>/. Solo lectura: no toca nada."""
+    nombre = nombre if re.fullmatch(r"[A-Za-z0-9_-]{1,40}", nombre or "") else "corrida"
+    base = os.path.join("logs", nombre)
+    ords = {}
+    for o in _leer_log(os.path.join(base, "ordenes.jsonl")):
+        if "pos" in o:
+            ords[o["pos"]] = o                       # la última entrada de cada orden
+    llam = _leer_log(os.path.join(base, "llamadas.jsonl"))
+    errs = _leer_log(os.path.join(base, "errores.jsonl"))
+    evs = _leer_log(os.path.join(base, "eventos.jsonl"))
+    total = None
+    if os.path.exists("data/uci.db"):                # sin crear archivos vacíos por accidente
+        try:
+            c = sqlite3.connect("file:data/uci.db?mode=ro", uri=True)
+            total = c.execute("SELECT COUNT(*) FROM cola").fetchone()[0]
+            c.close()
+        except sqlite3.Error:
+            pass
+    inicios = [e for e in evs if e.get("evento") == "inicio"]
+    if inicios:
+        total = inicios[-1].get("ya_hechas", 0) + inicios[-1].get("pendientes", 0)
+    cuenta = lambda r: sum(1 for o in ords.values() if o.get("resultado") == r)
+    alertas = sum(1 for o in ords.values() if (o.get("decision") or {}).get("accion") == "alertar")
+    try:
+        antig = time.time() - os.path.getmtime(os.path.join(base, "ordenes.jsonl"))
+    except OSError:
+        antig = None
+    motivo = None
+    if not evs:
+        estado_c = "sin iniciar"
+    elif evs[-1].get("evento") == "fin":
+        previo = evs[-2] if len(evs) > 1 else {}
+        if previo.get("evento") in MOTIVOS_PARADA:          # "fin" no siempre significa que acabó
+            estado_c, motivo = "detenida", MOTIVOS_PARADA[previo["evento"]]
+            if previo.get("codigo"):
+                motivo += f" ({previo['codigo']})"
+        else:
+            estado_c = "terminada"
+    elif evs[-1].get("evento") == "pausa_por_errores_seguidos" and _reciente(evs[-1], 330):
+        estado_c, motivo = "en pausa", "demasiados errores seguidos; reintenta en unos minutos"
+    elif antig is not None and antig < SEGUNDOS_CORRIDA_ACTIVA:
+        estado_c = "en curso"
+    else:
+        estado_c = "detenida sin cierre"
+    ultimas = sorted(ords.values(), key=lambda o: o.get("hora", ""), reverse=True)[:8]
+    return {
+        "estado": estado_c, "motivo": motivo, "total": total, "hechas": len(ords),
+        "ok": cuenta("ok"), "sin_decision": cuenta("sin_decision"), "error": cuenta("error"),
+        "alertas": alertas, "llamadas": len(llam),
+        "tokens": sum(x.get("tokens", 0) or 0 for x in llam),
+        "costo_usd": round(sum(_num(x.get("costo_usd")) for x in llam), 4),
+        "intentos_fallidos": len(errs),
+        "inicio": inicios[0].get("hora") if inicios else None,
+        "ultima": evs[-1].get("hora") if evs else None,
+        "ultimas": [{"regla": o.get("regla", "-"), "resultado": o.get("resultado", "-"),
+                     "accion": (o.get("decision") or {}).get("accion") or o.get("codigo", "-"),
+                     "causa": ((o.get("decision") or {}).get("causa") or o.get("nota") or o.get("error") or "")[:160],
+                     "costo_usd": o.get("costo_usd")} for o in ultimas],
+    }
+
+
+def _dir_corrida_por_defecto():
+    """La carpeta de corrida que más recientemente escribió eventos (la normal es logs/corrida)."""
+    if os.path.exists(os.path.join("logs", "corrida", "eventos.jsonl")):
+        return "corrida"
+    hay = [(os.path.getmtime(f), os.path.basename(os.path.dirname(f)))
+           for f in glob.glob(os.path.join("logs", "*", "eventos.jsonl"))]
+    return max(hay)[1] if hay else None
+
+
+def es_pedido_corrida(texto):
+    """"ver corrida", "cómo va la corrida piloto2"… (si piden datos reales de UCI es otra consulta)."""
+    t = unicodedata.normalize("NFD", texto.lower())
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return bool(re.search(r"\bcorrida\b", t)) and not chat_uci.es_pedido_uci(texto)
+
+
+def texto_corrida(texto):
+    """Respuesta de chat con el avance de una corrida: solo lee archivos, no llama a Grok ni gasta nada."""
+    t = texto.lower()
+    if re.search(r"\b(inicia|iniciar|lanza|lanzar|arranca|arrancar|empieza|empezar|corre|correr)\b", t):
+        return ("Las corridas largas no se lanzan desde el chat: se arrancan en la consola con worker.py "
+                "(así siguen aunque cierres la ventana). Aquí puedes ver su avance escribiendo «ver corrida».")
+    carpetas = sorted((os.path.basename(os.path.dirname(f))
+                       for f in glob.glob(os.path.join("logs", "*", "eventos.jsonl"))), key=len, reverse=True)
+    # "corrida" aparece en cualquier petición: solo cuenta como nombre si no se mencionó otra carpeta
+    nombre = next((c for c in carpetas if c != "corrida" and c.lower() in t), None) or _dir_corrida_por_defecto()
+    if not nombre:
+        return ("Todavía no hay ninguna corrida registrada. Se lanza desde la consola con worker.py; "
+                "cuando exista, aquí verás su avance.")
+    e = estado_corrida(nombre)
+    cab = f"Corrida «{nombre}»: {e['estado']}" + (f" ({e['motivo']})" if e["motivo"] else "") + "."
+    avance = (f"Avance: {e['hechas']} de {e['total']} ({e['hechas'] / e['total']:.0%})."
+              if e["total"] else f"Avance: {e['hechas']} órdenes.")
+    lineas = [cab, avance,
+              f"Decisiones: {e['ok']} correctas, {e['sin_decision']} sin decisión, {e['error']} con error; "
+              f"alertas: {e['alertas']}.",
+              f"Consumo: US${e['costo_usd']:.4f} en {e['llamadas']} llamadas a Grok ({e['tokens']:,} tokens)"
+              + (f", unos US${e['costo_usd'] / e['hechas']:.4f} por orden." if e["hechas"] else "."),
+              f"Intentos fallidos (reintentados): {e['intentos_fallidos']}."]
+    if e["ultima"]:
+        lineas.append(f"Última actividad: {e['ultima']}.")
+    if e["ultimas"]:
+        lineas.append("Últimas órdenes:")
+        lineas += [f"- {o['regla']}: {o['accion']} — {o['causa'][:90]}" for o in e["ultimas"][:5]]
+    return "\n".join(lineas)
+
+
 def _estado_publico():
     llamadas, gasto = _gasto_acumulado()
     e = dict(estado)
@@ -144,6 +271,15 @@ def _estado_publico():
 
 def _plural(n, singular, plural):
     return f"{n} {singular if n == 1 else plural}"
+
+
+def _pct(x):
+    return "sin dato" if x is None else f"{x}%"
+
+
+def _hay_hallazgo(h):
+    """Una orden va a Grok si tiene alguna bandera real; 'datos_incompletos' solo avisa que no se pudo revisar."""
+    return any(b != "datos_incompletos" for b in h["banderas"])
 
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -300,12 +436,15 @@ def _guardar_voz(item):
 
 
 def _detalle_sin_bandera(con, orden_id, ids):
-    """Respuesta a "busca la orden 3" cuando esa orden está bien: en vez de decir solo "no tiene banderas",
-    cuenta cómo está."""
+    """Respuesta a "busca la orden 3" cuando esa orden está bien (o no se pudo revisar): en vez de decir
+    solo "no tiene banderas", cuenta cómo está."""
     if orden_id not in ids:
         return f"La orden {orden_id} no existe (hay órdenes del {min(ids)} al {max(ids)})."
     h = revisar_orden(con, orden_id)
-    return (f"La orden #{orden_id} ({h['cliente']}, {h['fecha']}) no tiene banderas: margen {h['margen_pct']}%, "
+    if h.get("datos_faltantes"):
+        return (f"La orden #{orden_id} ({h['cliente']}, {h['fecha']}) no se pudo revisar por completo: "
+                f"falta {', '.join(h['datos_faltantes'])}.")
+    return (f"La orden #{orden_id} ({h['cliente']}, {h['fecha']}) no tiene banderas: margen {_pct(h['margen_pct'])}, "
             f"facturado ${sum(h['facturas']):,.2f} de ${h['monto_esperado']:,.2f} esperados, "
             f"stock disponible {h['stock_disponible']}.")
 
@@ -326,6 +465,8 @@ def _armar(base, ordenes, gasto, cancelado=False, guardadas=False, nota=""):
     if cancelado:
         resumen += " Consulta detenida: las órdenes restantes no se investigaron."
     resumen += nota
+    if gasto and not guardadas:              # lo que costó de verdad esta consulta (costo reportado por Grok)
+        resumen += f" Costo de esta consulta: US${gasto:.4f}."
 
     resultado = {"resumen": resumen, "ordenes": ordenes,
                  "perdida_total_mxn": perdida_total, "gasto_usd": gasto}
@@ -336,11 +477,90 @@ def _armar(base, ordenes, gasto, cancelado=False, guardadas=False, nota=""):
     return {"mensaje": "\n".join(lineas), "resultado": resultado, "cancelado": cancelado}
 
 
+def _corrida_en_curso():
+    """Mientras la corrida larga trabaja, el chat no gasta la llave: se mezclaría con el consumo que se mide.
+    AUDIBOT_PERMITIR_CHAT=1 lo desactiva."""
+    if os.environ.get("AUDIBOT_PERMITIR_CHAT"):
+        return False
+    return estado_corrida("corrida")["estado"] in ("en curso", "en pausa")
+
+
+def ejecutar_auditoria_uci(texto):
+    """Datos reales (UCI Online Retail II): audita líneas de la cola con el agente de agent/uci.py.
+    Entiende periodos ("agosto de 2010", "del 10 al 20 de agosto"), facturas ("factura C531179") y cantidades."""
+    gasto_inicial = llm.gasto_total
+    if not os.path.exists(RUTA_UCI):
+        return {"mensaje": "No encuentro los datos reales (data/uci.db). Cárgalos con db/cargar_uci.py.",
+                "resultado": None}
+    c = sqlite3.connect(RUTA_UCI)
+    try:
+        ultimo = c.execute("SELECT MAX(fecha) FROM lineas").fetchone()[0]
+    finally:
+        c.close()
+    pedido = interpretar(texto, date.fromisoformat(str(ultimo)[:10]))
+    factura = chat_uci.factura_pedida(texto)
+
+    def avance(total=None, hechas=None, mensaje=None, enviado=None):
+        if total is not None:
+            progreso["total"] = total
+        if hechas is not None:
+            progreso["hechas"] = hechas
+        if enviado is not None:
+            progreso["enviado"] = enviado
+        if mensaje:
+            estado["mensaje"] = mensaje
+
+    r = chat_uci.ejecutar_uci(texto, cancelar_evento, RUTA_UCI, DIR_CHAT_UCI, LIMITE_POR_DEFECTO,
+                              LIMITE_MAXIMO, ESPERA_ANTES_DE_ENVIAR, avance,
+                              desde=pedido["desde"], hasta=pedido["hasta"], factura=factura)
+    donde = (f" de la factura {factura}" if factura
+             else f" en {pedido['etiqueta']}" if pedido["etiqueta"] else "")
+    base = (f"Datos reales (UCI Online Retail II): la cola tiene {r['cola']} líneas"
+            + (f"; hay {r['en_filtro']}{donde}" if donde else "") + f"; quedan {r['pendientes']} por revisar.")
+    ordenes = r["ordenes"]
+    if not ordenes:
+        if r["tope"]:
+            return {"mensaje": f"Tope de gasto alcanzado (US${llm.MAX_BUDGET_USD:.2f}): no hice más llamadas a Grok.",
+                    "resultado": None}
+        if r["fatal"]:
+            return {"mensaje": f"No pude continuar: {r['fatal']}", "resultado": None}
+        if r["cancelado"]:
+            return {"mensaje": "Consulta detenida. No se envió nada a Grok.", "resultado": None, "cancelado": True}
+        if r["en_filtro"] == 0:
+            return {"mensaje": f"No hay líneas en la cola de auditoría{donde}. La cola es una muestra de "
+                               f"{r['cola']} líneas de los datos reales, que llegan hasta {str(ultimo)[:10]}.",
+                    "resultado": None}
+        if r["guardadas"]:                                  # ya estaban revisadas: se muestran sin gastar
+            return _armar(base, r["guardadas"], 0, guardadas=True)
+        return {"mensaje": f"No quedan líneas por revisar{donde} ({r['hechas_antes']} ya revisadas desde el chat).",
+                "resultado": None}
+    if r["pidio"] and r["pidio"] > r["limite"]:
+        base += f" (Máximo {r['limite']} por consulta, para cuidar los créditos.)"
+    nivel, resumen_alerta = _clasificar(ordenes)
+    estado["alerta"] = {"nivel": nivel, "resumen": resumen_alerta} if nivel else None
+    nota = " Los montos de UCI están en libras, así que no estimo pérdidas en MXN."
+    if r["tope"]:
+        nota += " Tope de gasto alcanzado: las líneas restantes no se investigaron."
+    if r["fatal"]:
+        nota += f" Me detuve: {r['fatal']}"
+    return _armar(base, ordenes, round(llm.gasto_total - gasto_inicial, 4), r["cancelado"], nota=nota)
+
+
 def ejecutar_auditoria(texto):
     """Misma lógica del script de consola. Números en el texto = ids de órdenes.
 
     Devuelve {"mensaje": texto_plano, "resultado": datos_estructurados | None, "cancelado": bool}.
     """
+    if es_pedido_corrida(texto):             # solo lectura: funciona incluso durante la corrida larga
+        return {"mensaje": texto_corrida(texto), "resultado": None}
+    if _corrida_en_curso():
+        return {"mensaje": "Hay una corrida larga en curso. Para no mezclar su consumo de la llave, el chat no "
+                           "investiga ahora. Puedes ver el avance con «Ver corrida».", "resultado": None}
+    explicito = chat_uci.es_pedido_sintetico(texto)
+    if os.path.exists(RUTA_UCI) and not explicito:         # los datos reales (UCI) son la base por defecto
+        return ejecutar_auditoria_uci(texto)
+    aviso_simulado = "" if explicito else (" (Uso la base simulada porque no encuentro los datos reales "
+                                           "en data/uci.db.)")
     gasto_inicial = llm.gasto_total   # para reportar solo el gasto de ESTA consulta
 
     con = sqlite3.connect(RUTA_BD)
@@ -351,9 +571,9 @@ def ejecutar_auditoria(texto):
         print("CANTIDAD INTERPRETADA:", pedido["cantidad"])
         pedidas = pedido["ids"]
         ids = [r[0] for r in con.execute("SELECT id FROM ordenes ORDER BY id")]
-        con_bandera = [h for h in (revisar_orden(con, i) for i in ids) if h["banderas"]]
+        con_bandera = [h for h in (revisar_orden(con, i) for i in ids) if _hay_hallazgo(h)]
         base = (f"Revisé {_plural(len(ids), 'orden', 'órdenes')} con las reglas y "
-                f"{len(con_bandera)} tienen banderas.")
+                f"{len(con_bandera)} tienen banderas.") + aviso_simulado
 
         fmin, fmax = con.execute("SELECT MIN(fecha), MAX(fecha) FROM ordenes").fetchone()
         if not pedidas and pedido["desde"]:
@@ -409,16 +629,11 @@ def ejecutar_auditoria(texto):
                     if por_tipo[tipo] and len(seleccion) < limite:
                         seleccion.append(por_tipo[tipo].pop(0))
 
-                        print(f"[DEBUG] Cantidad solicitada: {pedido['cantidad']}")
-        print(f"[DEBUG] Límite aplicado: {limite}")
-        print(f"[DEBUG] Órdenes con banderas: {len(en_periodo)}")
-        print(f"[DEBUG] Órdenes pendientes: {len(pendientes)}")
-        print(f"[DEBUG] Órdenes seleccionadas: {len(seleccion)}")
-
         os.makedirs("logs", exist_ok=True)
         ordenes = []
         cancelado = False
         tope = False
+        fatal = None
         progreso["total"] = len(seleccion)
         estado["mensaje"] = f"Investigando {_plural(len(seleccion), 'orden', 'órdenes')} con Grok…"
 
@@ -436,17 +651,28 @@ def ejecutar_auditoria(texto):
             # La llamada a Grok que ya salió no se puede recoger de vuelta (y se cobra),
             # pero auditar_orden revisa cancelar_evento antes de cada llamada NUEVA.
             progreso["enviado"] = True
-            err = None
+            err = err_usuario = None
             try:
                 d = auditar_orden(con, h, cancelar_evento)
             except Cancelado:
                 cancelado = True
                 break
+            except ErrorLLM as e:
+                codigo = e.info["codigo"]
+                if codigo == "TOPE_GASTO":
+                    tope = True
+                    break
+                if codigo == "LLAVE_INVALIDA":     # con una llave mala fallarían todas: se para de una vez
+                    fatal = e.info["mensaje"]
+                    break
+                d, err = None, f"{codigo}: {e.info['mensaje']}"     # el código queda en la bitácora
+                err_usuario = e.info["mensaje"]                      # la pantalla muestra el texto claro
             except Exception as e:  # noqa: BLE001 - una orden que falla no tumba toda la consulta
                 if "Tope de gasto" in str(e):
                     tope = True
                     break
                 d, err = None, f"{type(e).__name__}: {e}"[:200]
+                err_usuario = "Ocurrió un error inesperado."
 
             # Esa orden ya se pagó, así que se guarda aunque hayan cancelado durante la llamada.
             registro = {"orden": h["orden_id"], "banderas": h["banderas"], "decision": d}
@@ -458,7 +684,7 @@ def ejecutar_auditoria(texto):
 
             tarjeta = _tarjeta(h, d)
             if err:
-                tarjeta["causa"] = f"No pude completar el análisis ({err}). Requiere revisión humana."
+                tarjeta["causa"] = f"No pude analizar esta orden: {err_usuario} Requiere revisión humana."
             ordenes.append(tarjeta)
 
             if cancelar_evento.is_set():
@@ -469,6 +695,8 @@ def ejecutar_auditoria(texto):
             if tope:
                 return {"mensaje": f"Tope de gasto alcanzado (US${llm.MAX_BUDGET_USD:.2f}): no hice más llamadas a Grok.",
                         "resultado": None}
+            if fatal:
+                return {"mensaje": f"No pude continuar: {fatal}", "resultado": None}
             return {"mensaje": "Consulta detenida antes de terminar ninguna orden.",
                     "resultado": None, "cancelado": True}
 
@@ -476,7 +704,11 @@ def ejecutar_auditoria(texto):
         nivel, resumen_alerta = _clasificar(ordenes)
         estado["alerta"] = {"nivel": nivel, "resumen": resumen_alerta} if nivel else None
 
-        nota = " Tope de gasto alcanzado: las órdenes restantes no se investigaron." if tope else ""
+        nota = ""
+        if tope:
+            nota += " Tope de gasto alcanzado: las órdenes restantes no se investigaron."
+        if fatal:
+            nota += f" Me detuve: {fatal}"
         return _armar(base, ordenes, round(llm.gasto_total - gasto_inicial, 4), cancelado, nota=nota)
     finally:
         con.close()
@@ -531,6 +763,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if ruta == "/api/estado":
             return self._json(200, _estado_publico())
+
+        if ruta == "/api/corrida":
+            nombre = parse_qs(urlparse(self.path).query).get("dir", ["corrida"])[0]
+            return self._json(200, estado_corrida(nombre))
 
         if ruta == "/api/voz/historial":
             return self._json(200, {"items": list(historial_voz)})
@@ -725,8 +961,9 @@ class Handler(BaseHTTPRequestHandler):
                         )
                         _guardar_voz(estado["resultado_voz"])
 
-                except Exception as e:
-                    salida["error"] = str(e)
+                except Exception:
+                    traceback.print_exc()          # el detalle técnico queda en la consola del servidor
+                    salida["error"] = True
 
                     if es_async:
                         estado["resultado_voz"] = {
@@ -799,11 +1036,7 @@ class Handler(BaseHTTPRequestHandler):
             if "error" in salida:
                 return self._json(
                     500,
-                    {
-                        "error": (
-                            f"Falló la auditoría: {salida['error']}"
-                        )
-                    }
+                    {"error": "No pude completar la auditoría. Vuelve a intentarlo en un momento."}
                 )
 
             return self._json(

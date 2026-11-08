@@ -1,0 +1,9 @@
+{"hora": "2026-11-07T03:58:57.975639", "evento": "inicio", "modelo": "grok-4.6", "tope_usd": 3.0, "gastado_antes": 0.0, "pendientes": 1967, "ya_hechas": 0, "pausa_s": 0.0}
+{"hora": "2026-11-07T04:09:31.825360", "evento": "pausa_por_errores_seguidos", "segundos": 300}
+{"hora": "2026-11-07T04:19:32.903040", "evento": "stop_manual"}
+{"hora": "2026-11-07T04:19:32.904992", "evento": "fin", "gastado": 0.8025, "minutos": 20.6}
+{"hora": "2026-11-07T04:21:03.318778", "evento": "inicio", "modelo": "grok-4.6", "tope_usd": 3.0, "gastado_antes": 0.8025, "pendientes": 10, "ya_hechas": 36, "pausa_s": 0.0}
+{"hora": "2026-11-07T04:25:19.861252", "evento": "fin", "gastado": 1.0843, "minutos": 4.3}
+{"hora": "2026-11-07T04:34:09.361015", "evento": "inicio", "modelo": "grok-4.6", "tope_usd": 3.0, "gastado_antes": 1.0843, "pendientes": 10, "ya_hechas": 46, "pausa_s": 0.0}
+{"hora": "2026-11-07T04:34:28.965356", "evento": "interrumpido"}
+{"hora": "2026-11-07T04:34:28.977010", "evento": "fin", "gastado": 1.0948, "minutos": 0.3}

@@ -16,10 +16,23 @@ const ESTADOS = {
   trabajando: { label: 'Investigando',   color: 0xb36bff },
   grave:      { label: 'Alerta grave',   color: 0xff3b30 },
   menor:      { label: 'Aviso',          color: 0xff9a1f },
+  fallo:      { label: 'Error, reintentable', color: 0xffd400 },
+  bloqueado:  { label: 'Detenido',       color: 0xff3b30 },
 };
 
 const $ = (id) => document.getElementById(id);
 const norm = (s) => s.replace(/_/g, ' ').toLowerCase();   // three.js cambia espacios por "_"
+
+const ERRORES = {
+  LIMITE_VELOCIDAD: { estado: 'fallo',     voz: 'Hay mucho tráfico. Puedes reintentar en unos segundos.' },
+  TIMEOUT:          { estado: 'fallo',     voz: 'El modelo tardó demasiado. Puedes reintentar.' },
+  ERROR_SERVIDOR:   { estado: 'fallo',     voz: 'El servicio tuvo un problema. Reintenta en un momento.' },
+  SIN_CONEXION:     { estado: 'fallo',     voz: 'No hay conexión con el servicio. Revisa el servidor.' },
+  LLAVE_INVALIDA:   { estado: 'bloqueado', voz: 'Mi llave no es válida. Revisa el archivo punto env.' },
+  TOPE_GASTO:       { estado: 'bloqueado', voz: 'Llegué al tope de gasto. Me detengo.' },
+  DESCONOCIDO:      { estado: 'fallo',     voz: 'Ocurrió un error inesperado.' },
+};
+let vozError = null;
 
 function iniciar() {
   const stage = $('robotStage');
@@ -47,21 +60,13 @@ function iniciar() {
     return audios.get(texto);
   }
   
-async function hablar(texto) {
-  if (silenciado) return;
-
-  try {
-    const url = await audioDe(texto);
-
-    if (reproduciendo) reproduciendo.pause();
-
-    reproduciendo = new Audio(url);
-    await reproduciendo.play();
-  } catch (error) {
-    console.error('[AudiBot] Falló la voz de Edge TTS:', error);
+  function hablarLocal(texto) {
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'es-ES';
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
   }
-}
-
 
   async function hablar(texto) {
     if (silenciado) return;
@@ -192,11 +197,12 @@ async function hablar(texto) {
     }
     if (s === 'recibida' && anterior !== 'recibida') hablar('Entendido, voy a revisarlo.');
     const e = ESTADOS[s];
+    if ((s === 'fallo' || s === 'bloqueado') && vozError) { hablar(vozError); vozError = null; }
     etiqueta.textContent = e.label;
     punto.style.background = '#' + e.color.toString(16).padStart(6, '0');
     stage.dataset.estado = s;
     if (s === 'recibida') timer = setTimeout(() => setState('trabajando'), 1400);
-    if (s === 'grave' || s === 'menor') timer = setTimeout(() => setState('reposo'), SEGUNDOS_ALERTA * 1000);
+    if (s === 'grave' || s === 'menor' || s === 'fallo') timer = setTimeout(() => setState('reposo'), SEGUNDOS_ALERTA * 1000);
   }
 
   function glow(meshes, hex, intensity, base) {    // base: color fijo de la pieza; si no hay, toma el del estado
@@ -230,12 +236,14 @@ async function hablar(texto) {
       case 'trabajando':
         eyeI = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(tt * 2.4));
         chestI = 0.2 + 0.6 * (0.5 + 0.5 * Math.sin(tt * 2.4)); break;
-      case 'grave': case 'menor': {
+      case 'grave': case 'menor': case 'fallo': {
         const on = Math.sin(tt * 14) > -0.2;
         eyeI = on ? 1.6 : 0.25; chestI = on ? 1.6 : 0.2;
         shake = Math.sin(tt * 26) * 0.05; wiggle = 0.25; bounce = 0.04 * Math.abs(Math.sin(tt * 8));
         break;
       }
+      case 'bloqueado':
+        eyeI = 0.6 + 0.4 * Math.sin(tt * 3); chestI = 0.8; wiggle = 0.02; break;
       default: chestI = 0.35;
     }
     const hex = ESTADOS[st].color;
@@ -266,7 +274,11 @@ async function hablar(texto) {
   function resultadoDeLaConsulta() {
     const ultimo = lista.lastElementChild;
     if (!ultimo || lista.childElementCount <= mensajesAlInicio) return 'reposo';   // no llegó nada nuevo
-    if (ultimo.classList.contains('error')) return 'menor';
+    if (ultimo.classList.contains('error')) {
+      const e = ERRORES[ultimo.dataset.codigo] || ERRORES.DESCONOCIDO;
+      vozError = e.voz;
+      return e.estado;
+    }
     const alertas = [...ultimo.querySelectorAll('.audit-card.alert')];
     if (!alertas.length) return 'reposo';
     const perdidas = alertas.map((a) => {

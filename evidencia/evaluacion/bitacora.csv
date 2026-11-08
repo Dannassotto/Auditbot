@@ -1,0 +1,277 @@
+﻿hora,intento,es_ultimo_intento,pos,linea_id,orden_id,regla,es_control,entrada_factura,entrada_producto,entrada_descripcion,entrada_cantidad,entrada_precio,entrada_fecha,entrada_cliente,entrada_pais,resultado,exito,accion,causa,evidencia,costo_usd,tokens,llamadas_grok,intentos_api_fallidos,codigo_error,error,recuperada,duracion_s,nota
+2026-11-07T20:44:10.985670,1,si,92,395901,uci-395901,compra_repetida_mismo_dia,no,527380,22557,PLASTERS IN TIN VINTAGE PAISLEY,1,1.65,2010-10-17 12:52:00,14953,United Kingdom,ok,si,alertar,"Cliente 14953 compró el producto 22557 (cantidad 1, precio 1.65) en dos facturas distintas el mismo día y no suele repetir pedidos.","cliente: 14953
+producto: 22557
+cantidad: 1
+precio: 1.65
+factura: 527380
+fecha: 2010-10-17 12:52:00
+factura_previa_mismo_dia: 527376 a las 12:37 con cantidad 1 y precio 1.65
+lineas_22557_en_527380: 2
+compras_22557_del_cliente: 3 (todas el 2010-10-17)
+pedido_previo: 524700 el 2010-09-30
+compras_2010-10-18_a_2011-06-01: ninguna
+precio_mediana: 1.65",0.047424,27508,4,0,,,no,42.91,
+2026-11-07T20:44:53.893793,1,si,124,713753,uci-713753,cancelacion_sin_compra,no,C553024,23190,BUNDLE OF 3 SCHOOL EXERCISE BOOKS,-1,1.65,2011-05-12 19:28:00,13136,United Kingdom,ok,si,alertar,Cancelación de 1 unidad del producto 23190 a 1.65 sin ninguna compra previa del cliente 13136,"factura: C553024
+producto: 23190
+cantidad: -1
+precio: 1.65
+fecha: 2011-05-12
+cliente: 13136
+compras_previas_producto: 0
+lineas_en_factura: 1
+precio_mediana: 1.65",0.016194,8589,3,0,,,no,14.78,
+2026-11-07T20:45:08.673714,1,si,139,600672,uci-600672,compra_repetida_mismo_dia,no,542543,22423,REGENCY CAKESTAND 3 TIER,2,12.75,2011-01-28 14:42:00,13141,United Kingdom,ok,si,alertar,Cliente 13141 compró 2 uds. de 22423 a 12.75 en dos facturas distintas el mismo día y no suele repetir pedidos.,"producto: 22423
+cantidad: 2
+precio: 12.75
+factura: 542543
+fecha: 2011-01-28 14:42:00
+factura_misma_dia: 542528
+fecha_factura_previa: 2011-01-28 13:04:00
+cantidad_y_precio_iguales: sí
+precio_mediana: 12.75
+compras_previas_22423: 2 (siempre cantidad 2 a 12.75)
+patron_cliente: pedidos cada varios meses, una factura por día",0.066038,35853,5,0,,,no,42.68,
+2026-11-07T20:45:51.358755,1,si,166,221071,uci-221071,precio_cero,no,510869,90035C,,-24,0.0,2010-06-04 09:55:00,,United Kingdom,ok,si,ignorar,Ajuste interno sin cliente: cantidad -24 a precio 0 (el producto se vende a 10.75).,"factura: 510869
+producto: 90035C
+descripcion_catalogo: PEARL & SHELL 42""NECKL. IVORY
+cantidad: -24
+precio: 0.0
+cliente: null
+lineas_en_factura: 1
+precio_habitual: 10.75
+ventas_con_precio: 5
+lineas_precio_cero: 1",0.010776,4892,2,0,,,no,12.69,
+2026-11-07T20:46:04.053428,1,si,173,793932,uci-793932,cantidad_negativa,no,560423,16169K,,-25,0.0,2011-07-18 15:15:00,,United Kingdom,ok,si,ignorar,"Salida de 25 unidades sin cliente ni precio: ajuste de inventario, no venta.","producto: 16169K
+cantidad: -25
+precio: 0.0
+cliente: null
+descripcion: null
+factura: 560423 (1 línea)
+precio_mediana: 0.42
+lineas_precio_cero: 1 de 61",0.01031,4761,2,0,,,no,11.65,
+2026-11-07T20:46:15.709537,1,si,211,535542,uci-535542,linea_repetida_en_factura,no,537225,84795B,SUNSET CHECK HAMMOCK,4,7.95,2010-12-05 16:41:00,12748,United Kingdom,ok,si,ignorar,"Línea duplicada solo 2 veces (4 uds a 7.95, 31.80 £) en factura de cliente frecuente; no hay muchas repeticiones ni monto grande.","factura: 537225
+producto: 84795B
+repeticiones_en_factura: 2
+cantidad: 4
+precio: 7.95
+mediana_precio: 7.95
+monto_linea: 31.80
+cliente: 12748
+patron_cliente: duplicados identicos en facturas previas (536641, 536521)",0.04156,23520,5,0,,,no,38.13,
+2026-11-07T20:46:53.859558,1,si,225,43570,uci-43570,control_limpia,si,493139,35810A,ENAMEL PINK COFFEE CONTAINER,1,2.1,2009-12-22 11:32:00,15311,United Kingdom,ok,si,ignorar,Venta rutinaria a cliente mayorista habitual al precio mediano de 2.1 del producto.,"producto: 35810A
+precio_linea: 2.1
+precio_mediana: 2.1
+precio_min: 0.83
+precio_max: 4.3
+ventas_producto: 173
+cantidad: 1
+cliente: 15311
+compras_previas_mismo_producto: 3 posteriores al mismo precio 2.1
+factura: 493139
+lineas_factura: pedido mixto mayorista con cantidades 1-72",0.021152,10716,3,0,,,no,12.98,
+2026-11-07T20:47:06.837674,1,si,235,381187,uci-381187,compra_repetida_mismo_dia,no,526120,22753,SMALL YELLOW BABUSHKA NOTEBOOK,12,0.85,2010-10-08 13:30:00,13093,United Kingdom,sin_decision,no,,,,0.083478,55735,6,0,,,no,76.76,agotó los 6 pasos sin decidir
+2026-11-07T20:48:23.599851,1,si,256,206075,uci-206075,cantidad_negativa,no,509282,84770,,-3,0.0,2010-05-21 11:40:00,,United Kingdom,ok,si,ignorar,"Salida de 3 unidades sin cliente ni precio (0.0), típico ajuste de inventario.","factura: 509282
+producto: 84770
+descripcion_catalogo: ROUND GEORGIAN SILVER MIRROR
+cantidad: -3
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+precio_mediana: 2.95
+lineas_precio_cero_historico: 2",0.009332,4588,2,0,,,no,9.86,
+2026-11-07T20:48:33.459727,1,si,292,198203,uci-198203,control_limpia,si,508470,22071,SMALL WHITE RETROSPOT MUG IN BOX,1,3.75,2010-05-16 11:24:00,16922,United Kingdom,ok,si,ignorar,Venta rutinaria de 1 unidad al precio mediano 3.75 en factura mixta normal.,"producto: 22071
+precio_linea: 3.75
+precio_mediana: 3.75
+precio_min: 0.5
+precio_max: 7.78
+ventas_producto: 273
+cantidad: 1
+cliente: 16922
+factura: 508470
+fecha: 2010-05-16
+cancelacion: 0",0.015936,10240,3,0,,,no,13.18,
+2026-11-07T20:48:46.645086,1,si,418,537768,uci-537768,linea_repetida_en_factura,no,537374,21098,CHRISTMAS TOILET ROLL,2,1.25,2010-12-06 12:55:00,17259,United Kingdom,ok,si,ignorar,"La línea se repite solo 2 veces (cantidad 2 a 1.25, mediana del producto) con monto pequeño de 2.50 cada una, repetición habitual.","producto: 21098
+repeticiones_en_factura: 2
+cantidad: 2
+precio: 1.25
+mediana_precio: 1.25
+monto_linea: 2.50
+cliente: 17259
+factura: 537374",0.01747,9635,3,0,,,no,21.99,
+2026-11-07T20:49:08.636367,1,si,437,222092,uci-222092,cancelacion_sin_compra,no,C511015,79323B,BLACK CHERRY LIGHTS,-1,5.45,2010-06-04 15:08:00,14113,United Kingdom,ok,si,alertar,Cancelación de 1 unidad de 79323B por el cliente 14113 sin compra previa del mismo producto.,"factura: C511015
+producto: 79323B
+cantidad: -1
+precio: 5.45
+fecha: 2010-06-04
+cliente: 14113
+compras_previas_producto: 0
+lineas_en_factura: 1
+precio_minimo_producto: 5.45",0.016686,8681,3,0,,,no,19.52,
+2026-11-07T20:49:28.160207,1,si,529,148279,uci-148279,precio_cero,no,503521,79338,,-37,0.0,2010-04-01 13:09:00,,United Kingdom,ok,si,ignorar,Ajuste interno de inventario: -37 unidades a precio 0 sin cliente ni descripción.,"factura: 503521
+producto: 79338
+descripcion_catalogo: DARK PINK FLOCK GLASS CANDLEHOLDER
+cantidad: -37
+precio: 0.0
+cliente: null
+lineas_en_factura: 1
+ventas_producto: 13
+lineas_precio_cero: 1
+mediana_precio: 1.65",0.009676,4642,2,0,,,no,10.93,
+2026-11-07T20:49:39.095308,1,si,558,57696,uci-57696,compra_repetida_mismo_dia,no,494614,85123A,WHITE HANGING HEART T-LIGHT HOLDER,6,2.55,2010-01-15 13:32:00,17850,United Kingdom,ok,si,ignorar,Cliente mayorista 17850 compró 85123A cinco veces el 2010-01-15 (casi siempre 6 uds a 2.55) como parte de su patrón habitual de pedidos repetidos.,"cliente: 17850
+producto: 85123A
+fecha: 2010-01-15
+facturas_mismo_dia: 494510, 494514, 494589, 494608, 494614
+cantidades_dia: 6, 12, 6, 6, 6
+precio: 2.55
+patron_habitual: múltiples pedidos del mismo producto el mismo día (p. ej. 2010-12-02)",0.022784,12470,3,0,,,no,20.76,
+2026-11-07T20:49:59.853941,1,si,696,641309,uci-641309,control_limpia,si,546155,20975,12 PENCILS SMALL TUBE RED RETROSPOT,24,0.65,2011-03-10 08:29:00,15632,United Kingdom,ok,si,ignorar,"Venta rutinaria a precio mediano 0.65 y cantidad mayorista 24, sin anomalías.","precio: 0.65 (mediana 0.65, min 0.55, max 1.3)
+cantidad: 24
+cliente: 15632 (compra posterior misma cantidad/precio el 2011-10-07)
+factura: 546155 (pedido mixto normal, línea única)
+ventas_producto: 977",0.017294,10263,3,0,,,no,11.7,
+2026-11-07T20:50:11.558916,1,si,873,279245,uci-279245,cancelacion_sin_compra,no,C516581,85099C,JUMBO  BAG BAROQUE BLACK WHITE,-2,1.95,2010-07-21 13:19:00,16168,United Kingdom,ok,si,alertar,Cancelación de 2 unidades de 85099C sin ninguna compra previa de ese producto por el cliente 16168.,"factura: C516581
+producto: 85099C
+cantidad: -2
+precio: 1.95
+fecha: 2010-07-21
+cliente: 16168
+compras_previas_85099C: 0
+mediana_precio: 1.95",0.019352,9464,3,0,,,no,20.33,
+2026-11-07T20:50:31.887237,1,si,1001,118249,uci-118249,cantidad_negativa,no,500690,81985A,,-10,0.0,2010-03-09 12:35:00,,United Kingdom,ok,si,ignorar,"Salida negativa de 10 unidades sin cliente ni precio: ajuste de inventario, no venta.","cliente: null
+cantidad: -10
+precio: 0.0
+cancelacion: 0
+factura: 500690
+descripcion_linea: null
+producto: 81985A
+descripcion_catalogo: ICON ALARM CLOCK,FUSCHIA PIN UP
+precio_habitual: 2.55
+lineas_en_factura: 1",0.009658,4663,2,0,,,no,11.27,
+2026-11-07T20:50:43.163807,1,si,1092,748176,uci-748176,cancelacion_sin_compra,no,C556457,72760B,VINTAGE CREAM 3 BASKET CAKE STAND,-1,4.65,2011-06-10 16:50:00,15856,United Kingdom,ok,si,alertar,"Cancelación de 72760B sin compra previa del cliente 15856 y a 4.65, por debajo del mínimo histórico 8.49.","factura: C556457
+producto: 72760B
+cliente: 15856
+cantidad: -1
+fecha: 2011-06-10 16:50:00
+precio: 4.65
+compras_previas_producto: 0
+precio_minimo: 8.49
+precio_mediana: 9.95
+precio_maximo: 21.7
+ventas_producto: 512",0.025284,15176,4,0,,,no,25.88,
+2026-11-07T20:51:09.052445,1,si,1206,81508,uci-81508,control_limpia,si,496881,22320,BIRDS MOBILE VINTAGE DESIGN,1,5.95,2010-02-04 13:53:00,17841,United Kingdom,ok,si,ignorar,Venta rutinaria de 1 unidad a 5.95 (mediana del producto) por un mayorista frecuente.,"producto: 22320
+precio_linea: 5.95
+precio_mediana: 5.95
+precio_min: 5.45
+precio_max: 12.13
+ventas_producto: 182
+cantidad: 1
+cliente: 17841
+factura: 496881
+fecha: 2010-02-04
+cancelacion: 0",0.014024,10112,3,0,,,no,12.2,
+2026-11-07T20:51:21.266175,1,si,1293,207569,uci-207569,compra_repetida_mismo_dia,no,509420,90046,WHITE WITH METAL BAG CHARM,2,4.95,2010-05-23 13:00:00,14010,United Kingdom,ok,si,ignorar,"Recompra de 2 uds. a 4,95 del 90046 dos minutos después de cancelar la misma línea de la factura 509415; no es un pedido duplicado.","producto: 90046
+cantidad: 2
+precio: 4.95
+cliente: 14010
+factura: 509420
+fecha: 2010-05-23 13:00:00
+compra_original: 509415 cantidad 2 precio 4.95 a las 12:46
+cancelacion: C509419 cantidad -2 precio 4.95 a las 12:58
+otras_recompras: 90048 x10 y 90049 x7 también canceladas y reemitidas en 509420",0.024668,12558,3,0,,,no,22.62,
+2026-11-07T20:51:43.893424,1,si,1311,149855,uci-149855,control_limpia,si,503693,22612,TEA COSY VINTAGE UNION JACK,1,3.75,2010-04-06 12:45:00,16782,United Kingdom,ok,si,ignorar,Línea rutinaria normal: precio 3.75 igual a la mediana del producto y cantidad 1 en un pedido mixto de cliente habitual.,"producto: 22612
+precio: 3.75
+mediana_precio: 3.75
+minimo_precio: 3.39
+maximo_precio: 7.62
+ventas_producto: 111
+cantidad: 1
+cliente: 16782
+factura: 503693
+fecha: 2010-04-06
+cancelacion: 0",0.02069,13149,3,0,,,no,18.28,
+2026-11-07T20:52:02.179815,1,si,1357,63303,uci-63303,linea_repetida_en_factura,no,495016,85202,HANGING WOOD AND FELT HEART,1,0.42,2010-01-20 13:10:00,14649,United Kingdom,ok,si,ignorar,"El producto 85202 aparece solo 2 veces en la factura 495016, con cantidades distintas (1 y 4) y un importe de 0,42.","producto: 85202
+factura: 495016
+ocurrencias: 2
+cantidades: 1 y 4
+precio: 0.42
+cliente: 14649
+monto_linea: 0.42",0.01411,5899,2,0,,,no,16.47,
+2026-11-07T20:52:18.656602,1,si,1400,510252,uci-510252,cantidad_negativa,no,537032,21275,?,-30,0.0,2010-12-03 16:50:00,,United Kingdom,ok,si,ignorar,Ajuste de inventario sin cliente: cantidad -30 a precio 0 en factura 537032.,"factura: 537032
+producto: 21275
+descripcion_linea: ?
+descripcion_catalogo: ZINC TOP 2 DOOR WOODEN SHELF
+cantidad: -30
+precio: 0.0
+cliente: null
+cancelacion: 0
+fecha: 2010-12-03
+lineas_iguales_en_factura: 2
+precio_mediana: 16.95
+lineas_precio_cero_producto: 4",0.010054,4987,2,0,,,no,15.47,
+2026-11-07T20:52:34.128381,1,si,1477,401130,uci-401130,precio_cero,no,527802,22689,,1,0.0,2010-10-19 11:17:00,,United Kingdom,ok,si,ignorar,Precio 0 sin cliente y cantidad 1 en factura de una sola línea: ajuste interno (9 líneas a precio 0 en el historial).,"producto: 22689
+descripcion: DOORMAT MERRY CHRISTMAS RED
+cantidad: 1
+precio: 0.0
+cliente: null
+factura: 527802
+lineas_en_factura: 1
+ventas: 266
+precio_mediana: 7.95
+lineas_precio_cero: 9",0.008772,4732,2,0,,,no,11.91,
+2026-11-07T20:52:46.044543,1,si,1541,768985,uci-768985,cantidad_negativa,no,558464,35966,,-20,0.0,2011-06-29 15:17:00,,United Kingdom,ok,si,ignorar,"Salida de -20 unidades sin cliente ni precio (factura 558464), típico ajuste de inventario.","factura: 558464
+producto: 35966
+descripcion_catalogo: FOLKART CHRISTMAS TREE T-LIGHT HOLD
+cantidad: -20
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+ventas_producto: 26
+lineas_precio_cero: 4
+precio_mediana: 0.38",0.010204,4756,2,0,,,no,13.21,
+2026-11-07T20:52:59.253129,1,si,1588,192714,uci-192714,precio_cero,no,507683,72753C,,-3,0.0,2010-05-11 09:48:00,,United Kingdom,ok,si,ignorar,Ajuste interno sin cliente: cantidad -3 y precio 0.0 en factura de una sola línea.,"producto: 72753C
+descripcion_catalogo: S/3 FLWR FAIRY ROSE CANDLES
+cantidad: -3
+precio: 0.0
+cliente: null
+factura: 507683
+lineas_en_factura: 1
+precio_mediana: 2.1
+lineas_precio_cero: 2",0.009,4772,2,0,,,no,13.01,
+2026-11-07T20:53:12.263325,1,si,1589,545061,uci-545061,precio_cero,no,537870,21486,,-77,0.0,2010-12-08 17:08:00,,United Kingdom,ok,si,ignorar,"Ajuste interno sin cliente de 77 unidades a precio 0, no una venta.","factura: 537870
+producto: 21486
+descripcion_catalogo: PINK HEART DOTS HOT WATER BOTTLE
+cantidad: -77
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 2 (ambas 21486, -77, precio 0)
+ventas_producto: 310
+lineas_precio_cero: 2
+precio_mediana: 3.75",0.011966,5065,2,0,,,no,17.39,
+2026-11-07T20:53:29.656139,1,si,1646,255847,uci-255847,cancelacion_sin_compra,no,C514095,20684,STRAWBERRY DREAM CHILDS UMBRELLA,-5,2.75,2010-06-30 12:17:00,12770,Japan,ok,si,alertar,Cancelación de 5 unidades del producto 20684 sin ninguna compra previa del cliente 12770.,"factura: C514095
+producto: 20684
+cantidad: -5
+fecha: 2010-06-30 12:17:00
+precio: 2.75
+cliente: 12770
+compras_previas_producto: 0
+lineas_cliente_hasta_fecha: solo cancelaciones C514095 y C503745
+precio_minimo_producto: 2.75",0.028948,14796,4,0,,,no,25.18,
+2026-11-07T20:53:54.833795,1,si,1864,481505,uci-481505,linea_repetida_en_factura,no,534500,22091,EMPIRE TISSUE BOX,1,1.25,2010-11-23 11:13:00,17290,United Kingdom,ok,si,ignorar,"El producto 22091 se repite solo 2 veces en la factura con cantidad 1 y precio 1.25, monto pequeño habitual.","factura: 534500
+producto: 22091
+descripcion: EMPIRE TISSUE BOX
+repeticiones: 2
+cantidad: 1
+precio: 1.25
+cliente: 17290
+fecha: 2010-11-23",0.019568,10190,3,0,,,no,18.86,
+2026-11-07T20:54:13.694723,1,si,1900,742281,uci-742281,linea_repetida_en_factura,no,555854,22697,GREEN REGENCY TEACUP AND SAUCER,1,2.95,2011-06-07 13:47:00,12748,United Kingdom,ok,si,ignorar,"La línea del producto 22697 se repite solo 2 veces (cantidad 1 a 2.95) en la factura 555854, monto pequeño y cliente mayorista habitual.","producto: 22697
+factura: 555854
+repeticiones_en_factura: 2
+cantidad: 1
+precio: 2.95
+precio_mediana: 2.95
+cliente: 12748
+patron_cliente: pedidos frecuentes con muchas líneas de cantidad baja",0.03582,18094,4,0,,,no,26.64,

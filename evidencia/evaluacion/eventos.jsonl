@@ -1,0 +1,2 @@
+{"hora": "2026-11-07T20:44:10.981435", "evento": "inicio", "modelo": "grok-4.6", "tope_usd": 3.0, "gastado_antes": 0.0, "pendientes": 30, "ya_hechas": 0, "pausa_s": 0.0}
+{"hora": "2026-11-07T20:54:40.339997", "evento": "fin", "gastado": 0.6682, "minutos": 10.5}

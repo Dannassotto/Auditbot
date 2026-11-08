@@ -1,7 +1,13 @@
 import sqlite3
 from pathlib import Path
 
+import os
+
 import pytest
+
+# Las pruebas nunca llaman a Grok, pero services/llm.py crea el cliente al importarse.
+os.environ.setdefault("API_KEY", "pk_prueba")
+os.environ.setdefault("BASE_URL", "http://localhost:9")
 
 SCHEMA = Path(__file__).resolve().parent.parent / "db" / "schema.sql"
 
@@ -34,3 +40,17 @@ def crear_orden(con):
             con.execute("INSERT INTO facturas (orden_id, monto_facturado) VALUES (?, ?)", (id, m))
         return id
     return _crear
+
+
+@pytest.fixture(autouse=True)
+def sin_grok_real(monkeypatch):
+    """Red de seguridad: si una prueba intenta llamar al Grok real (gastaría créditos), falla en voz alta."""
+    from services import llm
+
+    class _Bloqueado:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kw):
+                    raise AssertionError("Una prueba intentó llamar al Grok real: eso gasta créditos.")
+    monkeypatch.setattr(llm, "client", _Bloqueado)

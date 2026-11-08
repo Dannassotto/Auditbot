@@ -1,0 +1,448 @@
+﻿hora,intento,es_ultimo_intento,pos,linea_id,orden_id,regla,es_control,entrada_factura,entrada_producto,entrada_descripcion,entrada_cantidad,entrada_precio,entrada_fecha,entrada_cliente,entrada_pais,resultado,exito,accion,causa,evidencia,costo_usd,tokens,llamadas_grok,intentos_api_fallidos,codigo_error,error,recuperada,duracion_s,nota
+2026-11-07T03:58:57.979198,1,si,1,535312,uci-535312,linea_repetida_en_factura,no,537219,22667,RECIPE BOX RETROSPOT,2,2.95,2010-12-05 15:47:00,14081,United Kingdom,ok,si,ignorar,"Línea repetida solo 2 veces en la factura (cantidad 2 a 2.95, monto 5.90), precio igual a la mediana y sin importe grande.","factura: 537219
+producto: 22667
+repeticiones_en_factura: 2
+cantidad: 2
+precio: 2.95
+precio_mediana: 2.95
+monto_linea: 5.90
+cliente: 14081
+compras_previas_producto: 1 (cantidad 1 el 2010-10-29)",0.023732,10880,3,0,,,no,22.67,
+2026-11-07T03:59:20.655947,1,si,2,437012,uci-437012,cancelacion_sin_compra,no,C531179,22138,BAKING SET 9 PIECE RETROSPOT,-6,4.95,2010-11-05 14:56:00,15796,United Kingdom,ok,si,alertar,Cancelación de 6 unidades del producto 22138 a 4.95 sin ninguna compra previa de ese artículo por el cliente 15796.,"factura: C531179
+producto: 22138
+descripcion: BAKING SET 9 PIECE RETROSPOT
+cantidad: -6
+precio: 4.95
+fecha: 2010-11-05 14:56:00
+cliente: 15796
+compra_previa_22138: ninguna
+otras_lineas_factura: 22617 x -6 a 4.95
+compras_recientes_cliente: 530431 (2010-11-03) y 528754 (2010-10-24) sin producto 22138
+precio_mediana_producto: 4.95",0.018778,8843,3,0,,,no,18.57,
+2026-11-07T03:59:39.235849,1,si,3,544992,uci-544992,linea_repetida_en_factura,no,537868,22814,CARD PARTY GAMES,12,0.42,2010-12-08 16:49:00,12433,Norway,ok,si,ignorar,La línea se duplica solo 2 veces (12 × 0.42) en un pedido mayorista y el cliente ya registró el mismo par idéntico en una factura previa.,"factura: 537868
+producto: 22814
+cantidad: 12
+precio: 0.42
+repeticiones: 2
+cliente: 12433
+monto_linea: 5.04
+precio_mediana: 0.42
+factura_previa: 536532 con 2 líneas iguales",0.02389,11115,3,0,,,no,31.94,
+2026-11-07T04:00:11.182127,1,si,4,846081,uci-846081,cantidad_negativa,no,565057,82551,,-110,0.0,2011-08-31 17:12:00,,United Kingdom,ok,si,ignorar,Salida no cancelación sin cliente (cantidad -110 a precio 0): ajuste de inventario.,"factura: 565057
+producto: 82551
+descripcion_catalogo: LAUNDRY 15C METAL SIGN
+cantidad: -110
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+ventas_producto: 771
+precio_mediana: 1.45
+lineas_precio_cero: 4",0.009788,4660,2,0,,,no,13.65,
+2026-11-07T04:00:24.861132,1,si,5,431978,uci-431978,linea_repetida_en_factura,no,530657,22968,ROSE COTTAGE KEEPSAKE BOX,1,9.95,2010-11-04 10:13:00,12933,United Kingdom,ok,si,ignorar,La línea 22968 se repite solo 2 veces (qty 1 a 9.95 cada una) en la factura; monto pequeño y precio igual a la mediana.,"producto: 22968
+factura: 530657
+repeticiones_en_factura: 2
+cantidad_por_linea: 1
+precio: 9.95
+precio_mediana: 9.95
+monto_total_repetido: 19.90
+cliente: 12933",0.024052,11500,3,0,,,no,30.78,
+2026-11-07T04:00:55.659893,1,si,6,324572,uci-324572,cancelacion_sin_compra,no,C521022,22540,MINI JIGSAW CIRCUS PARADE,-2,0.42,2010-09-01 15:12:00,12720,Germany,ok,si,alertar,Cancelación de 2 unidades del producto 22540 sin compra previa del cliente 12720,"cliente: 12720
+producto: 22540
+factura: C521022
+cantidad: -2
+fecha: 2010-09-01 15:12:00
+precio: 0.42
+compras_previas_producto: 0
+factura_relacionada: 520351 (otros productos circus/plasters, no 22540)",0.026102,15739,4,0,,,no,38.18,
+2026-11-07T04:01:33.839377,1,si,7,600690,uci-600690,cantidad_negativa,no,542552,21645,,-1,0.0,2011-01-28 14:47:00,,United Kingdom,ok,si,ignorar,"Salida de 1 unidad sin cliente ni precio, típico ajuste de inventario.","factura: 542552
+producto: 21645
+descripcion_catalogo: ASSORTED TUTTI FRUTTI ROUND BOX
+cantidad: -1
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+precio_habitual: 1.65",0.011054,4621,2,0,,,no,11.42,
+2026-11-07T04:01:45.265415,1,si,8,107646,uci-107646,precio_cero,no,499755,72750C,,8,0.0,2010-03-02 12:09:00,,United Kingdom,ok,si,ignorar,"Precio 0.0 sin cliente y cantidad 8 encaja con un ajuste interno, no con error de captura.","producto: 72750C
+descripcion_catalogo: F.FAIRY S/3 CANDLE/GLASS, ROSE
+cliente: null
+cantidad: 8
+precio: 0.0
+precio_mediana: 1.95
+lineas_precio_cero: 2
+lineas_en_factura: 1",0.011174,4629,2,0,,,no,11.69,
+2026-11-07T04:01:56.958879,1,si,9,532914,uci-532914,linea_repetida_en_factura,no,537041,22507,MEMO BOARD RETROSPOT  DESIGN,2,4.95,2010-12-05 10:36:00,16033,United Kingdom,ok,si,ignorar,Una sola repetición de la misma línea (qty 2 a £4.95) en factura mixta de cliente habitual; monto pequeño y patrón normal.,"factura: 537041
+producto: 22507
+repeticiones_en_factura: 2
+cantidad: 2
+precio: 4.95
+monto_linea: 9.90
+cliente: 16033
+precio_mediana: 4.95
+compras_cliente_producto: 10 lineas (qty 1-5, precio 4.95)",0.020274,10483,3,0,,,no,27.41,
+2026-11-07T04:02:24.400560,1,si,10,92056,uci-92056,cantidad_negativa,no,498084,21266,,-23,0.0,2010-02-16 12:23:00,,United Kingdom,ok,si,ignorar,"Salida de -23 unidades sin cliente ni precio (0.0), típico ajuste de inventario y no una venta.","factura: 498084
+producto: 21266
+descripcion_catalogo: VINTAGE SILVER TINSEL REEL
+cantidad: -23
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+ventas_producto: 9
+precio_mediana: 4.3
+lineas_precio_cero: 1",0.009282,4825,2,0,,,no,14.43,
+2026-11-07T04:02:38.832471,1,si,11,551072,uci-551072,cancelacion_sin_compra,no,C538377,37449,CERAMIC CAKE STAND + HANGING CAKES,-1,9.95,2010-12-12 11:23:00,15224,United Kingdom,ok,si,alertar,Cancelación de 1 unidad de 37449 a 9.95 sin compra previa; la única venta del cliente es 71 minutos después.,"factura: C538377
+producto: 37449
+cantidad: -1
+fecha: 2010-12-12 11:23:00
+precio: 9.95
+cliente: 15224
+compra_previa_37449: no encontrada
+venta_posterior: 538470 cantidad 1 a 9.95 el 2010-12-12 12:34:00
+precio_mediana: 9.95",0.028096,15186,4,0,,,no,43.94,
+2026-11-07T04:03:22.774202,1,si,12,234377,uci-234377,linea_repetida_en_factura,no,512089,21259,VICTORIAN SEWING BOX SMALL,4,5.95,2010-06-13 12:35:00,14573,United Kingdom,ok,si,ignorar,Solo 2 líneas idénticas de 4 uds a 5.95 (23.80 cada una) en factura grande; repetición habitual y monto bajo.,"producto: 21259
+repeticiones: 2
+cantidad: 4
+precio: 5.95
+monto_linea: 23.80
+precio_mediana: 5.95
+factura_lineas: mas_de_30
+cliente: 14573",0.025902,15719,4,0,,,no,30.5,
+2026-11-07T04:03:53.277031,1,si,13,223072,uci-223072,linea_repetida_en_factura,no,511050,21240,BLUE  SPOTTY CUP,2,0.85,2010-06-06 12:07:00,16782,United Kingdom,ok,si,ignorar,"El producto 21240 se repite 3 veces en la factura (cantidades 2, 1 y 2) a 0.85 (mediana); repetición habitual y monto bajo.","factura: 511050
+producto: 21240
+repeticiones_en_factura: 3
+cantidades: 2, 1, 2
+precio: 0.85
+precio_mediana: 0.85
+ventas_producto: 786
+cliente: 16782
+compras_posteriores_cliente: cantidades 1-3 a 0.85",0.028918,11601,3,0,,,no,38.92,
+2026-11-07T04:04:32.204931,1,si,14,336571,uci-336571,cancelacion_sin_compra,no,C522157,21232,STRAWBERRY CERAMIC TRINKET BOX,-2,1.25,2010-09-13 10:52:00,16159,United Kingdom,ok,si,alertar,Cancelación de 2 unidades del producto 21232 sin ninguna compra previa de ese artículo por el cliente 16159.,"factura: C522157
+producto: 21232
+cantidad: -2
+fecha: 2010-09-13 10:52:00
+precio: 1.25
+cliente: 16159
+compras_previas_mismo_producto: 0
+otras_facturas_cliente: 520514 y 499788 (otros productos)
+precio_mediana: 1.25",0.016024,8854,3,0,,,no,18.61,
+2026-11-07T04:04:50.828087,1,si,15,292453,uci-292453,cantidad_negativa,no,517880,22655,,-19,0.0,2010-08-02 16:59:00,,United Kingdom,ok,si,ignorar,Ajuste de inventario sin cliente: cantidad -19 a precio 0 del producto 22655.,"factura: 517880
+producto: 22655
+cantidad: -19
+precio: 0.0
+cliente: null
+cancelacion: 0
+descripcion: VINTAGE RED KITCHEN CABINET
+lineas_en_factura: 1
+lineas_precio_cero: 5",0.009232,4804,2,0,,,no,12.49,
+2026-11-07T04:05:03.315474,1,si,16,509331,uci-509331,precio_cero,no,536941,22734,amazon,20,0.0,2010-12-03 12:08:00,,United Kingdom,ok,si,ignorar,"Ajuste interno sin cliente a precio 0 (descripción amazon, cantidad 20).","producto: 22734
+descripcion_linea: amazon
+descripcion_catalogo: SET OF 6 RIBBONS VINTAGE CHRISTMAS
+cliente: null
+precio: 0.0
+cantidad: 20
+precio_mediana: 2.89
+lineas_precio_cero_producto: 15
+factura: 536941 (2 líneas idénticas)",0.009428,4880,2,0,,,no,14.39,
+2026-11-07T04:05:17.704461,1,si,17,292152,uci-292152,compra_repetida_mismo_dia,no,517861,22487,WHITE WOOD GARDEN PLANT LADDER,1,9.95,2010-08-02 14:07:00,13090,United Kingdom,ok,si,alertar,"El cliente 13090 compró el producto 22487 dos veces el mismo día (cantidad 1 a 9.95) en facturas distintas a 9 minutos, y no suele repetir así.","factura: 517861
+factura_otra: 517858
+producto: 22487
+cantidad: 1
+precio: 9.95
+fecha: 2010-08-02 14:07:00
+fecha_otra: 2010-08-02 13:58:00
+cliente: 13090
+otra_compra_dia: 517858 qty 1 precio 9.95
+precio_mediana: 9.95
+compras_producto_cliente: solo estas 2
+patron_cliente: pedidos mayoristas espaciados (p. ej. 2011-11-08, 2011-11-20, 2011-12-01)",0.054986,41023,6,0,,,no,50.66,
+2026-11-07T04:06:08.371596,1,si,18,186799,uci-186799,cantidad_negativa,no,507169,84802A,,-90,0.0,2010-05-06 14:33:00,,United Kingdom,ok,si,ignorar,Ajuste de inventario sin cliente: cantidad -90 a precio 0.,"factura: 507169
+producto: 84802A
+descripcion_catalogo: WHITE ANEMONE ARTIFICIAL FLOWER
+cantidad: -90
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+precio_habitual: 1.69
+ventas_producto: 25",0.012134,4845,2,0,,,no,11.74,
+2026-11-07T04:06:20.116681,1,si,19,566961,uci-566961,precio_cero,no,539856,22327,ROUND SNACK BOXES SET OF 4 SKULLS,1,0.0,2010-12-22 14:41:00,,United Kingdom,ok,si,ignorar,"Precio 0 sin cliente y cantidad 1: ajuste interno, no error de captura.","producto: 22327
+precio: 0.0
+cliente: null
+cantidad: 1
+precio_mediana: 2.95
+lineas_precio_cero_producto: 6
+factura: 539856 (varias líneas a 0.0 y una Manual 1298.4, todas sin cliente)",0.01145,5639,2,0,,,no,12.3,
+2026-11-07T04:06:32.417100,1,si,20,983227,uci-983227,cancelacion_sin_compra,no,C575746,21982,PACK OF 12 SUKI TISSUES,-1,0.39,2011-11-11 10:19:00,13588,United Kingdom,ok,si,alertar,Cancelación de 1 unidad del producto 21982 sin compra previa del cliente.,"cliente: 13588
+producto: 21982
+factura_cancelacion: C575746
+fecha: 2011-11-11 10:19:00
+cantidad: -1
+precio: 0.39
+compras_previas_producto: 0
+compra_mismo_dia_posterior: 575878 cantidad 1 a las 13:29",0.02734,12500,4,0,,,no,30.52,
+2026-11-07T04:07:02.942429,1,si,21,200944,uci-200944,cantidad_negativa,no,508693,21730,,-11,0.0,2010-05-17 16:58:00,,United Kingdom,ok,si,ignorar,"Salida de 11 unidades sin cliente ni factura C, con precio 0: ajuste interno de inventario.","factura: 508693
+producto: 21730
+cantidad: -11
+precio: 0.0
+cliente: null
+cancelacion: 0
+descripcion: null
+lineas_en_factura: 1
+ventas_historicas: 334
+lineas_precio_cero: 2
+precio_mediana: 4.95",0.008258,4665,2,0,,,no,10.11,
+2026-11-07T04:07:13.055912,1,si,22,303106,uci-303106,precio_cero,no,518933,47591C,,2,0.0,2010-08-12 14:43:00,,United Kingdom,ok,si,ignorar,"Precio 0 sin cliente ni descripción y cantidad baja (2) es un ajuste interno, no un error de captura.","producto: 47591C
+descripcion_catalogo: BLUE FAIRY CAKE CHILD'S APRON
+precio: 0.0
+cantidad: 2
+cliente: null
+factura: 518933
+lineas_en_factura: 1
+ventas: 159
+precio_mediana: 1.95
+precio_minimo: 1.65
+lineas_precio_cero: 5",0.010976,4824,2,0,,,no,12.81,
+2026-11-07T04:07:25.864380,1,si,23,83554,uci-83554,cantidad_negativa,no,497170,85185F,,-6,0.0,2010-02-05 17:24:00,,United Kingdom,ok,si,ignorar,"Salida de -6 unidades sin cliente ni precio (0.0), típico ajuste interno de inventario.","producto: 85185F
+descripcion_catalogo: LION SOCK PUPPET
+cantidad: -6
+precio: 0.0
+cliente: null
+factura: 497170 (1 sola línea)
+cancelacion: 0
+precio_normal: 2.95
+lineas_precio_cero: 3 de 20 ventas",0.01058,4782,2,0,,,no,12.08,
+2026-11-07T04:07:37.949178,1,si,24,398390,uci-398390,cantidad_negativa,no,527465,21915,Mixed with blue,-390,0.0,2010-10-18 10:51:00,,United Kingdom,ok,si,ignorar,"Salida de 390 unidades sin cliente y a precio 0, típico ajuste interno de inventario.","factura: 527465
+producto: 21915
+cantidad: -390
+precio: 0.0
+cliente: null
+descripcion: Mixed with blue
+lineas_en_factura: 1
+ventas_producto: 1073
+precio_mediana: 1.25
+lineas_precio_cero: 6",0.01346,5302,2,0,,,no,19.21,
+2026-11-07T04:07:57.161839,1,no,25,504927,uci-504927,precio_cero,no,536550,85044,,1,0.0,2010-12-01 14:34:00,,United Kingdom,error,no,,,,0.003076,6923,3,3,SIN_CONEXION,No hay conexión con el servicio.,no,67.34,
+2026-11-07T04:09:04.511741,1,no,26,304379,uci-304379,cantidad_negativa,no,519119,84847,,-17,0.0,2010-08-13 12:00:00,,United Kingdom,error,no,,,,0.0,4879,2,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.03,
+2026-11-07T04:09:07.552726,1,no,27,537427,uci-537427,linea_repetida_en_factura,no,537354,20724,RED RETROSPOT CHARLOTTE BAG,5,0.85,2010-12-06 12:23:00,12748,United Kingdom,error,no,,,,0.0,6708,2,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.03,
+2026-11-07T04:09:10.584368,1,no,28,236031,uci-236031,cancelacion_sin_compra,no,C512272,22028,PENNY FARTHING BIRTHDAY CARD,-12,0.42,2010-06-14 13:32:00,15031,United Kingdom,error,no,,,,0.0,17087,4,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.02,
+2026-11-07T04:09:13.618962,1,no,29,908381,uci-908381,cancelacion_sin_compra,no,C569981,22312,OFFICE MUG WARMER POLKADOT,-2,2.95,2011-10-06 19:36:00,12679,France,error,no,,,,0.0,8521,3,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.02,
+2026-11-07T04:09:16.643472,1,no,30,403965,uci-403965,compra_repetida_mismo_dia,no,528087,21495,SKULLS AND CROSSBONES WRAP,25,0.42,2010-10-20 13:09:00,16521,United Kingdom,error,no,,,,0.0,40317,6,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.03,
+2026-11-07T04:09:19.676355,1,no,31,194364,uci-194364,precio_cero,no,507904,21902,,-180,0.0,2010-05-11 17:11:00,,United Kingdom,error,no,,,,0.0,4937,2,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.03,
+2026-11-07T04:09:22.715538,1,no,32,385792,uci-385792,cancelacion_sin_compra,no,C526456,37447,CERAMIC CAKE DESIGN SPOTTED PLATE,-5,1.49,2010-10-11 15:45:00,17755,United Kingdom,error,no,,,,0.0,14039,4,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.03,
+2026-11-07T04:09:25.748218,1,no,33,559300,uci-559300,compra_repetida_mismo_dia,no,539299,22072,RED RETROSPOT TEA CUP AND SAUCER,4,3.75,2010-12-16 17:30:00,14180,United Kingdom,error,no,,,,0.0,39575,5,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.03,
+2026-11-07T04:09:28.785077,1,no,34,488393,uci-488393,linea_repetida_en_factura,no,535139,22952,60 CAKE CASES VINTAGE CHRISTMAS,1,0.55,2010-11-25 11:40:00,15271,United Kingdom,error,no,,,,0.0,10297,3,3,SIN_CONEXION,No hay conexión con el servicio.,no,3.04,
+2026-11-07T04:14:31.885220,1,si,35,254404,uci-254404,cancelacion_sin_compra,no,C513944,79323GR,GREEN CHERRY LIGHTS,-3,6.75,2010-06-29 13:14:00,16858,United Kingdom,ok,si,alertar,Cancelación de 3 unidades de 79323GR a 6.75 sin ninguna compra previa de ese producto por el cliente 16858.,"factura: C513944
+producto: 79323GR
+cantidad: -3
+precio: 6.75
+fecha: 2010-06-29
+cliente: 16858
+compras_previas_producto: ninguna
+otras_lineas_misma_factura: 79323S -4, 79323P -1, 79323W -3 (tampoco con compra previa)
+ultima_compra_cliente: 513597 el 2010-06-27 (otros productos)
+precio_mediana: 6.75",0.016216,8964,3,0,,,no,19.42,
+2026-11-07T04:14:51.314759,1,si,36,752815,uci-752815,control_limpia,si,556845,23235,STORAGE TIN VINTAGE LEAF,48,2.49,2011-06-15 11:30:00,17511,United Kingdom,ok,si,ignorar,"Línea rutinaria de mayorista: 48 uds. a 2.49 (rango 1.25–5.79, mediana 2.89) en factura habitual.","producto: 23235
+precio: 2.49
+precio_min: 1.25
+precio_mediana: 2.89
+precio_max: 5.79
+ventas_producto: 108
+cantidad: 48
+cliente: 17511
+factura: 556845",0.016194,9249,3,0,,,no,11.98,
+2026-11-07T04:15:03.298293,1,si,37,228137,uci-228137,cantidad_negativa,no,511472,20728,,-148,0.0,2010-06-08 13:23:00,,United Kingdom,ok,si,ignorar,Ajuste de inventario sin cliente: cantidad -148 a precio 0 en factura única.,"factura: 511472
+producto: 20728
+descripcion: LUNCH BAG CARS BLUE
+cantidad: -148
+precio: 0.0
+cliente: null
+lineas_en_factura: 1
+ventas_producto: 2141
+lineas_precio_cero: 1
+precio_mediana: 1.65",0.008942,4781,2,0,,,no,13.1,
+2026-11-07T04:15:16.405821,1,si,38,1022911,uci-1022911,cancelacion_sin_compra,no,C578371,22964,3 PIECE SPACEBOY COOKIE CUTTER SET,-1,2.1,2011-11-24 11:16:00,14410,United Kingdom,ok,si,alertar,Cancelación de 1 unidad del producto 22964 sin ninguna compra previa de ese artículo por el cliente 14410.,"factura: C578371
+producto: 22964
+cantidad: -1
+precio: 2.1
+cliente: 14410
+fecha: 2011-11-24
+compras_previas_producto: 0
+precio_mediana: 2.1",0.027092,16814,4,0,,,no,26.3,
+2026-11-07T04:15:42.706890,1,si,39,349919,uci-349919,compra_repetida_mismo_dia,no,523374,82482,WOODEN PICTURE FRAME WHITE FINISH,6,2.1,2010-09-21 19:10:00,17850,United Kingdom,ok,si,ignorar,Mayorista 17850 que ese día emitió 9 facturas del producto 82482 con cantidades distintas; patrón habitual de pedidos repetidos.,"cliente: 17850
+producto: 82482
+fecha: 2010-09-21
+facturas_producto_ese_dia: 9
+cantidades_ese_dia: 12, 8, 12, 12, 12, 6, 12, 6, 8
+precio_linea: 2.1
+rango_precio_historico: 1.89-5.79 (mediana 2.55)
+patron: también compra 82482 en muchas facturas el 2010-12-02",0.027452,15684,3,0,,,no,25.09,
+2026-11-07T04:16:07.798838,1,si,40,349928,uci-349928,compra_repetida_mismo_dia,no,523374,72741,GRAND CHOCOLATECANDLE,9,1.25,2010-09-21 19:10:00,17850,United Kingdom,ok,si,ignorar,"Mayorista 17850 con 9 facturas del producto 72741 el mismo día a 1.25, patrón habitual que repite al día siguiente.","cliente: 17850
+producto: 72741
+fecha: 2010-09-21
+cantidad: 9
+precio: 1.25
+facturas_21-09 con 72741: 9
+cantidades ese día: 9/18/36
+facturas_22-09 con 72741: 11
+precio_historico_min/mediana: 1.25/1.45",0.032918,22387,4,0,,,no,26.41,
+2026-11-07T04:16:34.216187,1,si,41,80587,uci-80587,cantidad_negativa,no,496785,35473,,-3,0.0,2010-02-03 16:05:00,,United Kingdom,ok,si,ignorar,"Salida negativa de cantidad -3 a precio 0 sin cliente ni descripción, ajuste interno de inventario.","factura: 496785
+producto: 35473
+descripcion: null
+cantidad: -3
+precio: 0.0
+cliente: null
+cancelacion: 0
+ventas_producto: 0
+lineas_precio_cero: 1
+lineas_en_factura: 1",0.008472,4570,2,0,,,no,10.34,
+2026-11-07T04:16:44.562488,1,si,42,345699,uci-345699,compra_repetida_mismo_dia,no,523007,85036A,GARDENIA 1 WICK MORRIS BOXED CANDLE,1,4.25,2010-09-19 16:27:00,15870,United Kingdom,ok,si,alertar,Cliente 15870 compró 85036A dos veces el 2010-09-19 (cant. 1 a 4.25 £) en facturas distintas y no suele repetir pedidos.,"producto: 85036A
+cantidad: 1
+precio: 4.25
+factura: 523007 (2010-09-19 16:27)
+factura_otra: 523006 (2010-09-19 16:22)
+misma_cantidad_precio: sí
+otras_compras_cliente: 531427 (2010-11-08), 574826 (2011-11-07)
+precio_mediana: 4.25",0.04848,34518,5,0,,,no,38.8,
+2026-11-07T04:17:23.365414,1,si,43,908238,uci-908238,cancelacion_sin_compra,no,C569945,21875,KINGS CHOICE MUG,-1,1.25,2011-10-06 18:14:00,14141,United Kingdom,ok,si,alertar,Cancelación de 1 unidad del producto 21875 sin ninguna compra previa del cliente 14141.,"cliente: 14141
+producto: 21875
+factura: C569945
+cantidad: -1
+fecha: 2011-10-06
+precio: 1.25
+compras_previas_producto: 0
+otras_lineas_factura: 22720 x -2 (sí tenía compras previas)",0.031118,17621,5,0,,,no,19.35,
+2026-11-07T04:17:42.722289,1,si,44,407601,uci-407601,compra_repetida_mismo_dia,no,528388,22941,CHRISTMAS LIGHTS 10 REINDEER,72,7.65,2010-10-21 18:37:00,13093,United Kingdom,ok,si,alertar,El cliente duplicó 72 unidades a 7.65 en facturas distintas (528375 y 528388) el mismo día y no suele repetir pedidos así.,"cliente: 13093
+producto: 22941
+cantidad: 72
+precio: 7.65
+factura: 528388
+fecha: 2010-10-21 18:37:00
+factura_previa: 528375
+fecha_previa: 2010-10-21 17:29:00
+cantidad_previa: 72
+precio_previo: 7.65
+lineas_528388: 22941x72@7.65, 22943x108@4.25, 22942x48@7.65
+lineas_528375: 22941x72@7.65, 22943x108@4.25, 22942x48@7.65
+otras_compras_producto: solo cancelación C540948 de -2 el 2011-01-12
+precio_mediana: 8.5",0.07234,38734,6,0,,,no,43.11,
+2026-11-07T04:18:25.831197,1,si,45,548679,uci-548679,compra_repetida_mismo_dia,no,538185,79067,CORONA MEXICAN TRAY,4,3.75,2010-12-10 10:22:00,16265,United Kingdom,ok,si,alertar,"El cliente 16265 compró el producto 79067 dos veces el 2010-12-10 (cantidad 4, precio 3.75 £) en facturas distintas a 1 minuto, patrón que no suele repetir.","factura: 538185
+factura_gemela: 538183
+producto: 79067
+cantidad: 4
+precio: 3.75
+fecha: 2010-12-10 10:22:00
+fecha_gemela: 2010-12-10 10:21:00
+cliente: 16265
+compras_producto_ese_dia: 2
+compra_previa_producto: 533561 2010-11-18 cantidad 4 precio 3.75
+otro_producto_duplicado: 47421 cantidad 24 precio 0.42 en ambas facturas
+patron_cliente: un pedido cada 2-4 semanas, no suele repetir el mismo día",0.055152,35584,5,0,,,no,55.84,
+2026-11-07T04:19:21.679718,1,si,46,336797,uci-336797,cantidad_negativa,no,522195,22429,,-9,0.0,2010-09-13 11:54:00,,United Kingdom,ok,si,ignorar,"Cantidad negativa de 9 unidades sin cliente ni precio, típico ajuste de inventario.","factura: 522195
+producto: 22429
+descripcion_catalogo: ENAMEL MEASURING JUG CREAM
+cantidad: -9
+precio: 0.0
+cliente: null
+cancelacion: 0
+lineas_en_factura: 1
+ventas_producto: 660
+lineas_precio_cero: 7",0.01016,4696,2,0,,,no,11.22,
+2026-11-07T04:21:03.324688,2,si,25,504927,uci-504927,precio_cero,no,536550,85044,,1,0.0,2010-12-01 14:34:00,,United Kingdom,ok,si,ignorar,"Precio 0 sin cliente y cantidad 1, típico ajuste interno (mediana 4.95).","producto: 85044
+descripcion: RED REINDEER STRING OF 20 LIGHTS
+precio: 0.0
+precio_mediana: 4.95
+cantidad: 1
+cliente: null
+factura: 536550
+lineas_en_factura: 2 (ambas 85044 a precio 0)
+ventas: 41
+lineas_precio_cero: 4",0.010046,6923,3,3,,,si,20.17,
+2026-11-07T04:21:23.497752,2,si,26,304379,uci-304379,cantidad_negativa,no,519119,84847,,-17,0.0,2010-08-13 12:00:00,,United Kingdom,ok,si,ignorar,Ajuste de inventario sin cliente: cantidad -17 a precio 0.,"producto: 84847
+descripcion: FLORAL BATHROOM SET
+cantidad: -17
+precio: 0.0
+cliente: null
+factura: 519119 (1 línea)
+cancelacion: 0
+ventas_producto: 51
+lineas_precio_cero: 3",0.009466,4879,2,3,,,si,12.8,
+2026-11-07T04:21:36.297205,2,si,27,537427,uci-537427,linea_repetida_en_factura,no,537354,20724,RED RETROSPOT CHARLOTTE BAG,5,0.85,2010-12-06 12:23:00,12748,United Kingdom,ok,si,ignorar,Dos líneas idénticas de 20724 (5 uds a 0.85) en la misma factura; repetición menor y monto pequeño de un cliente habitual.,"producto: 20724
+factura: 537354
+repeticiones_en_factura: 2
+cantidad: 5
+precio: 0.85
+monto_linea: 4.25
+cliente: 12748
+mediana_precio: 0.85
+compras_cliente_producto: varias a 0.85 con cantidades 1-10",0.01484,6708,2,3,,,si,20.89,
+2026-11-07T04:21:57.189173,2,si,28,236031,uci-236031,cancelacion_sin_compra,no,C512272,22028,PENNY FARTHING BIRTHDAY CARD,-12,0.42,2010-06-14 13:32:00,15031,United Kingdom,ok,si,alertar,Cancelación de 12 unidades del producto 22028 sin compra previa del cliente 15031.,"cliente: 15031
+producto: 22028
+factura: C512272
+fecha: 2010-06-14
+cantidad: -12
+precio: 0.42
+compras_previas_producto: 0
+precio_mediana: 0.42
+ultima_compra_cliente: 2010-05-10 factura 507459",0.031822,17087,4,3,,,si,33.71,
+2026-11-07T04:22:30.910387,2,si,29,908381,uci-908381,cancelacion_sin_compra,no,C569981,22312,OFFICE MUG WARMER POLKADOT,-2,2.95,2011-10-06 19:36:00,12679,France,ok,si,alertar,Cancelación de 2 unidades del producto 22312 sin ninguna compra previa de ese artículo por el cliente 12679.,"factura: C569981
+producto: 22312
+cantidad: -2
+precio: 2.95
+cliente: 12679
+fecha: 2011-10-06 19:36:00
+compras_previas_producto: 0
+otras_lineas_factura: 22314 x -2 a 2.95
+precio_mediana_producto: 2.95",0.015758,8521,3,3,,,si,14.82,
+2026-11-07T04:22:45.741817,2,si,30,403965,uci-403965,compra_repetida_mismo_dia,no,528087,21495,SKULLS AND CROSSBONES WRAP,25,0.42,2010-10-20 13:09:00,16521,United Kingdom,ok,si,alertar,"Mismo producto 21495 (25 uds a 0,42) en dos facturas distintas el mismo día y el cliente no suele repetir pedidos.","producto: 21495
+cantidad: 25
+precio: 0.42
+factura: 528087
+fecha: 2010-10-20 13:09:00
+factura_previa: 528082
+fecha_previa: 2010-10-20 12:53:00
+cliente: 16521
+compras_producto_cliente: 2 (ambas el mismo día, misma cantidad y precio)
+otras_facturas_cliente: 499628 (2010-03-01) y 528082 (mismo día)
+compras_posteriores: ninguna
+precio_mediana: 0.42",0.06747,40317,6,3,,,si,30.29,
+2026-11-07T04:23:16.032016,2,si,31,194364,uci-194364,precio_cero,no,507904,21902,,-180,0.0,2010-05-11 17:11:00,,United Kingdom,ok,si,ignorar,Ajuste interno de inventario sin cliente: -180 unidades del producto 21902 a precio 0.,"cliente: null
+cantidad: -180
+precio: 0.0
+descripcion: null
+factura: 507904 (1 línea)
+producto: 21902 KEY FOB FRONT DOOR
+precio_mediana: 0.65
+ventas: 502
+lineas_precio_cero: 2",0.009814,4937,2,3,,,si,13.62,
+2026-11-07T04:23:29.661613,2,si,32,385792,uci-385792,cancelacion_sin_compra,no,C526456,37447,CERAMIC CAKE DESIGN SPOTTED PLATE,-5,1.49,2010-10-11 15:45:00,17755,United Kingdom,ok,si,alertar,Cancelación de 5 unidades del producto 37447 sin compra previa del cliente 17755.,"factura: C526456
+producto: 37447
+cantidad: -5
+precio: 1.49
+fecha: 2010-10-11
+cliente: 17755
+compras_previas_producto: 0
+historial_cliente: solo C526456 (10 líneas de cancelación)",0.02455,14039,4,3,,,si,24.56,
+2026-11-07T04:23:54.240332,2,si,33,559300,uci-559300,compra_repetida_mismo_dia,no,539299,22072,RED RETROSPOT TEA CUP AND SAUCER,4,3.75,2010-12-16 17:30:00,14180,United Kingdom,ok,si,alertar,"El cliente 14180 compró 4 uds. de 22072 a 3.75 en dos facturas distintas (539298 y 539299) con 1 minuto de diferencia, patrón que no suele repetir.","cliente: 14180
+producto: 22072
+cantidad: 4
+precio: 3.75
+factura: 539299
+fecha: 2010-12-16 17:30:00
+otra_factura_mismo_dia: 539298
+otra_fecha: 2010-12-16 17:29:00
+otra_cantidad: 4
+otra_precio: 3.75
+precio_mediana: 3.75
+patron_cliente: una factura por día en el resto del historial
+compras_22072_cliente: suele comprar 4, a veces 8",0.075782,39575,5,3,,,si,63.42,
+2026-11-07T04:24:57.698461,2,si,34,488393,uci-488393,linea_repetida_en_factura,no,535139,22952,60 CAKE CASES VINTAGE CHRISTMAS,1,0.55,2010-11-25 11:40:00,15271,United Kingdom,ok,si,ignorar,"Tres líneas del producto 22952 (cantidades 1, 1 y 4; total 3.30) a precio mediano, repetición habitual y monto bajo.","producto: 22952
+factura: 535139
+lineas_mismo_producto: 3
+cantidades: 1, 1, 4
+precio: 0.55
+mediana_precio: 0.55
+cliente: 15271
+otras_compras_cliente: varias, incluida factura 538064 con líneas repetidas
+otras_repeticiones_en_factura: 22469, 22865",0.022198,10297,3,3,,,si,22.13,

@@ -1,6 +1,10 @@
-
 # listener.py
 # AudiBot: reconocimiento de voz con Vosk y comunicacion con Electron.
+#
+# Protocolo:
+#   - stdout: eventos JSON, uno por linea (wake, orden, confirmado, rechazado, timeout, parcial, oido)
+#   - stderr: mensajes de diagnostico
+#   - stdin : Electron puede mandar "pausa N" para silenciar el microfono N segundos
 
 import argparse
 import difflib
@@ -55,6 +59,42 @@ NO = {
     "rechazar", "detente", "para", "negativo",
 }
 
+# Similitud minima para la coincidencia aproximada de la palabra de activacion.
+UMBRAL_WAKE = 0.78
+
+# Vosk devuelve el texto sin tildes ni enie. Aqui se restauran las palabras que usas.
+# Clave: como la escribe Vosk (minusculas, sin tilde). Valor: como debe quedar.
+# Anade las tuyas mirando las lineas "[oigo] ..." de la terminal.
+# Evita palabras ambiguas (como "esta"/"esta" o "mas"/"mas"), porque cambiarian frases correctas.
+CORRECCIONES = {
+    "ordenes": "órdenes",
+    "numero": "número",
+    "numeros": "números",
+    "ano": "año",
+    "anos": "años",
+    "dia": "día",
+    "dias": "días",
+    "ultimo": "último",
+    "ultima": "última",
+    "ultimos": "últimos",
+    "ultimas": "últimas",
+    "revision": "revisión",
+    "informacion": "información",
+    "facturacion": "facturación",
+    "codigo": "código",
+    "telefono": "teléfono",
+    "articulo": "artículo",
+    "tambien": "también",
+    "miercoles": "miércoles",
+    "sabado": "sábado",
+    "septiembre": "septiembre",
+}
+
+
+def restaurar_acentos(texto):
+    """Devuelve el texto con las tildes y enies restauradas segun CORRECCIONES."""
+    return " ".join(CORRECCIONES.get(p, p) for p in (texto or "").split())
+
 
 def normalizar(texto):
     """Normaliza el texto para facilitar las comparaciones."""
@@ -72,9 +112,9 @@ def buscar_wake(texto):
     """
     Devuelve (encontrado, texto_restante).
 
-    Evita coincidencias aproximadas demasiado permisivas.
-    Las variantes se basan en las transcripciones observadas
-    durante las pruebas de AudiBot.
+    1. Busca las variantes exactas de WAKE_VARIANTES.
+    2. Si no hay, prueba coincidencia aproximada con una palabra o con
+       dos palabras consecutivas unidas (Vosk suele separar "audi bot").
     """
     limpio = normalizar(texto)
 
@@ -99,24 +139,31 @@ def buscar_wake(texto):
             )
             return True, re.sub(r"\s+", " ", restante).strip()
 
-    # Coincidencia aproximada solo para una palabra completa.
-    # Se limita la longitud para evitar coincidencias accidentales.
-    for palabra in limpio.split():
-        if not 6 <= len(palabra) <= 8:
+    # Coincidencia aproximada: una palabra o dos palabras unidas.
+    palabras = limpio.split()
+    candidatos = [(i, i + 1, p) for i, p in enumerate(palabras)]
+    candidatos += [
+        (i, i + 2, palabras[i] + palabras[i + 1])
+        for i in range(len(palabras) - 1)
+    ]
+
+    mejor = None  # (similitud, ini, fin)
+
+    for ini, fin, candidato in candidatos:
+        if not 5 <= len(candidato) <= 10:
             continue
 
         similitud = difflib.SequenceMatcher(
-            None, palabra, "audibot"
+            None, candidato, "audibot"
         ).ratio()
 
-        if similitud >= 0.90:
-            restante = re.sub(
-                r"(?<!\w)" + re.escape(palabra) + r"(?!\w)",
-                " ",
-                limpio,
-                count=1,
-            )
-            return True, re.sub(r"\s+", " ", restante).strip()
+        if similitud >= UMBRAL_WAKE and (mejor is None or similitud > mejor[0]):
+            mejor = (similitud, ini, fin)
+
+    if mejor:
+        _, ini, fin = mejor
+        restante = " ".join(palabras[:ini] + palabras[fin:])
+        return True, restante.strip()
 
     return False, ""
 
@@ -143,6 +190,10 @@ class Detector:
         self.orden_pendiente = ""
         self.ultima_actividad = time.monotonic()
 
+    def tocar(self):
+        """Reinicia el contador de inactividad (p. ej. al terminar una pausa)."""
+        self.ultima_actividad = time.monotonic()
+
     def activar(self):
         self.estado = "orden"
         self.orden_pendiente = ""
@@ -154,7 +205,8 @@ class Detector:
         )
 
     def recibir_orden(self, texto):
-        texto = (texto or "").strip()
+        # Se restauran las tildes y enies antes de enviar la orden a Electron y al servidor.
+        texto = restaurar_acentos((texto or "").strip())
 
         if not texto:
             return
@@ -178,12 +230,10 @@ class Detector:
 
         # IMPORTANTE:
         # No activar con resultados parciales. Vosk puede transcribir
-        # primero "autobot" y después cambiar el resultado final.
-        # Procesar ambos provocaba que la palabra de activacion
-        # terminara convertida en una orden.
+        # primero "autobot" y despues cambiar el resultado final.
         if parcial:
             if self.estado == "orden":
-                self.emitir("parcial", texto=texto)
+                self.emitir("parcial", texto=restaurar_acentos(texto))
             return
 
         self.ultima_actividad = time.monotonic()
@@ -284,6 +334,13 @@ class Detector:
 
 
 def main():
+    # En Windows, con la salida redirigida, Python usa cp1252 y las tildes se rompen.
+    for flujo in (sys.stdout, sys.stderr, sys.stdin):
+        try:
+            flujo.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(
         description="AudiBot: reconocimiento de voz"
     )
@@ -296,7 +353,7 @@ def main():
     parser.add_argument(
         "--device",
         default=None,
-        help="Dispositivo de microfono",
+        help="Dispositivo de microfono (numero o nombre)",
     )
     parser.add_argument(
         "--debug",
@@ -351,8 +408,10 @@ def main():
         }
 
         try:
+            # ensure_ascii=True: las tildes viajan como \u00f3, que Electron decodifica bien
+            # sea cual sea la codificacion de la consola de Windows.
             print(
-                json.dumps(salida, ensure_ascii=False),
+                json.dumps(salida, ensure_ascii=True),
                 flush=True,
             )
         except (BrokenPipeError, OSError):
@@ -367,7 +426,7 @@ def main():
         return 1
 
     print(
-        f"[DEBUG] Cargando modelo: {ruta_modelo}",
+        f"[listener] Cargando modelo: {ruta_modelo}",
         file=sys.stderr,
         flush=True,
     )
@@ -410,33 +469,56 @@ def main():
 
     def leer_entrada():
         # Electron puede enviar "pausa 2" por stdin.
-        for linea in sys.stdin:
-            linea = linea.strip()
+        try:
+            for linea in sys.stdin:
+                linea = linea.strip()
 
-            if not linea:
-                continue
+                if not linea:
+                    continue
 
-            partes = linea.split(maxsplit=1)
+                partes = linea.split(maxsplit=1)
+                comando = partes[0].lower()
 
-            if partes[0].lower() == "pausa":
-                try:
-                    segundos = (
-                        float(partes[1])
-                        if len(partes) > 1
-                        else 1.5
-                    )
-                    segundos = max(0.0, min(segundos, 60.0))
-
-                    with pausa_lock:
-                        pausa_hasta[0] = max(
-                            pausa_hasta[0],
-                            time.monotonic() + segundos,
+                if comando == "pausa":
+                    try:
+                        segundos = (
+                            float(partes[1])
+                            if len(partes) > 1
+                            else 1.5
                         )
+                        segundos = max(0.0, min(segundos, 60.0))
 
-                    debug(f"Microfono en pausa durante {segundos} s")
+                        with pausa_lock:
+                            pausa_hasta[0] = max(
+                                pausa_hasta[0],
+                                time.monotonic() + segundos,
+                            )
 
-                except ValueError:
-                    debug(f"Duracion de pausa no valida: {linea}")
+                        debug(f"Microfono en pausa durante {segundos} s")
+
+                    except ValueError:
+                        debug(f"Duracion de pausa no valida: {linea}")
+
+                elif comando == "reanudar":
+                    # Sustituye la pausa en curso: el microfono vuelve a escuchar
+                    # pasados "segundos" (cola corta para no captar el eco final).
+                    try:
+                        segundos = (
+                            float(partes[1])
+                            if len(partes) > 1
+                            else 0.0
+                        )
+                        segundos = max(0.0, min(segundos, 60.0))
+
+                        with pausa_lock:
+                            pausa_hasta[0] = time.monotonic() + segundos
+
+                        debug(f"Microfono se reanuda en {segundos} s")
+
+                    except ValueError:
+                        debug(f"Duracion de reanudar no valida: {linea}")
+        except (OSError, ValueError):
+            pass
 
     threading.Thread(
         target=leer_entrada,
@@ -448,6 +530,8 @@ def main():
         ventana=args.ventana,
         ventana_confirmar=args.confirmar,
     )
+
+    estaba_en_pausa = False
 
     try:
         with sd.RawInputStream(
@@ -475,6 +559,23 @@ def main():
                     en_pausa = time.monotonic() < pausa_hasta[0]
 
                 if en_pausa:
+                    # Se descarta el audio: es la voz del propio robot.
+                    estaba_en_pausa = True
+                    continue
+
+                if estaba_en_pausa:
+                    # Al salir de la pausa: limpiar lo que quedo a medias,
+                    # vaciar el audio acumulado y reiniciar el tiempo de espera
+                    # para que la pausa no se coma la ventana de la orden.
+                    estaba_en_pausa = False
+                    recognizer.Reset()
+                    while not audio_queue.empty():
+                        try:
+                            audio_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                    detector.tocar()
+                    debug("Fin de la pausa: te escucho")
                     continue
 
                 if recognizer.AcceptWaveform(datos_audio):
@@ -482,7 +583,13 @@ def main():
                     texto = resultado.get("text", "").strip()
 
                     if texto:
-                        debug(f"Reconocido: {texto}")
+                        # Lo que Vosk ha entendido, siempre visible en la terminal.
+                        print(
+                            f"[oigo] {texto}",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        emitir("oido", texto=texto)
                         detector.procesar(texto, parcial=False)
                 else:
                     resultado = json.loads(recognizer.PartialResult())

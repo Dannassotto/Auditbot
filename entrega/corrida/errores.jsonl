@@ -1,0 +1,1 @@
+{"hora": "2026-11-07T08:38:38.692025", "orden_id": "uci-502294", "codigo": "TIMEOUT", "reintentable": true, "intento": 1, "detalle": "APITimeoutError('Request timed out.')"}
